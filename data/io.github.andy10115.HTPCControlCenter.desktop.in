@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=HTPC Control Center
+Comment=Configure TV automation and controller wake for a Linux HTPC
+Exec=@EXEC@
+Icon=preferences-system
+Terminal=false
+Type=Application
+Categories=Utility;System;Game;
+Keywords=HTPC;TV;Android TV;Google TV;Controller;Wake;Suspend;
+StartupNotify=true

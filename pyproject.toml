@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "htpc-control-center"
+version = "0.2.0"
+description = "GTK4/libadwaita control center for Linux HTPC TV automation and controller wake"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Andy East"}]
+dependencies = [
+  "dbus-next>=0.2.3",
+  "tomli>=2.0; python_version < '3.11'",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications :: GTK",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/andy10115/HTPC-Control-Center"
+Issues = "https://github.com/andy10115/HTPC-Control-Center/issues"
+
+[project.scripts]
+htpc-control-center = "htpc_control_center.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+include-package-data = true

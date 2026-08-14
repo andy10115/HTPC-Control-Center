@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.andy10115.HTPCControlCenter</id>
+  <name>HTPC Control Center</name>
+  <summary>Configure TV automation and controller wake on a Linux HTPC</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>HTPC Control Center provides a GTK4/libadwaita interface for console-like TV power/input automation and USB controller wake from suspend.</p>
+  </description>
+  <launchable type="desktop-id">io.github.andy10115.HTPCControlCenter.desktop</launchable>
+  <url type="homepage">https://github.com/andy10115/HTPC-Control-Center</url>
+  <developer id="io.github.andy10115"><name>Andy East</name></developer>
+  <releases>
+    <release version="0.2.0" date="2026-08-14"/>
+  </releases>
+</component>
