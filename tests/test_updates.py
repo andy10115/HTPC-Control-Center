@@ -124,6 +124,37 @@ class UpdateTests(unittest.TestCase):
                 output = updates.install_update(info)
             self.assertIn("update-ok", output)
 
+    def test_download_uses_github_json_media_type(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "download.tar.gz"
+
+            class FakeResponse(io.BytesIO):
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, exc_type, exc, tb):
+                    self.close()
+                    return False
+
+            captured = {}
+
+            def fake_urlopen(request, timeout=30.0):
+                captured["accept"] = request.get_header("Accept")
+                captured["timeout"] = timeout
+                return FakeResponse(b"archive-data")
+
+            with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+                updates._download("https://api.github.com/example/tarball/v0.2.1", destination)
+
+            self.assertEqual(captured["accept"], "application/vnd.github+json")
+            self.assertEqual(destination.read_bytes(), b"archive-data")
+
+    def test_bootstrap_uses_github_json_for_tarball_download(self) -> None:
+        bootstrap = Path(__file__).resolve().parents[1] / "bootstrap.sh"
+        text = bootstrap.read_text(encoding="utf-8")
+        self.assertNotIn("application/octet-stream", text)
+        self.assertGreaterEqual(text.count("application/vnd.github+json"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

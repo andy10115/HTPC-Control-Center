@@ -90,7 +90,7 @@ curl -fsSL https://raw.githubusercontent.com/andy10115/HTPC-Control-Center/main/
 
 `bootstrap.sh` is intentionally tiny. It asks GitHub for the latest **stable** release, downloads that release's source archive to a temporary directory, and runs the release's normal `install.sh`. It never installs development code directly from `main`.
 
-> **Maintainer note:** the bootstrap command cannot work until this repository has a published GitHub Release. After pushing the initial repository, publish the matching `v0.2.0` release before advertising the curl command. Drafts and prereleases are intentionally ignored.
+The bootstrap installer follows GitHub's repository-tarball API using the GitHub JSON media type, then follows GitHub's redirect to the generated source archive. Drafts and prereleases are intentionally ignored.
 
 ### From a clone
 
@@ -125,7 +125,7 @@ HTPC Control Center uses **GitHub Releases**, not the development `main` branch,
 - When a newer stable release is known, the home screen shows an **Update** banner.
 - **Preferences → Updates** contains the current version, an **Automatically check for updates** switch, a manual **Check Now** action, and an install action when a release is available.
 - Updates are **never installed silently**. The user must click Update/Install Update.
-- The updater downloads the source archive URL returned by GitHub for that release and runs the release's normal unprivileged `install.sh`.
+- The updater downloads the source archive URL returned by GitHub using GitHub's repository-archive API semantics and runs the release's normal unprivileged `install.sh`.
 - After a successful application update, HTPC Control Center restarts itself.
 - Existing TV configuration and privileged controller-wake configuration are preserved during a normal app update.
 

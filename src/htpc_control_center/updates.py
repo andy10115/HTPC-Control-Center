@@ -219,7 +219,7 @@ def _download(url: str, destination: Path, timeout: float = 30.0) -> None:
     request = urllib.request.Request(
         url,
         headers={
-            "Accept": "application/octet-stream",
+            "Accept": "application/vnd.github+json",
             "User-Agent": USER_AGENT,
         },
     )

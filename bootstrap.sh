@@ -41,7 +41,7 @@ TARBALL_URL="${RELEASE_INFO[1]:-}"
 printf 'Downloading %s...\n' "$TAG_NAME"
 ARCHIVE="$TMP_DIR/release.tar.gz"
 curl -fsSL --retry 2 \
-  -H 'Accept: application/octet-stream' \
+  -H 'Accept: application/vnd.github+json' \
   -H "User-Agent: ${USER_AGENT}" \
   "$TARBALL_URL" -o "$ARCHIVE" || fail "Could not download $TAG_NAME."
 
