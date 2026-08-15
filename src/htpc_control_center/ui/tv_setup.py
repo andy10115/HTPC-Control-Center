@@ -14,7 +14,7 @@ from ..tv.android import (
     TVInput,
     authorize_controller,
     discover_adb_targets,
-    find_adb,
+    resolve_adb,
     installation_help,
     set_tv_endpoint,
 )
@@ -33,7 +33,8 @@ class TVSetupView(Gtk.Box):
         self.config.tv.provider = "android"
         self.inputs: list[TVInput] = []
         self._busy_buttons: list[Gtk.Button] = []
-        shell, self.content, _header = page_shell("TV Setup", lambda *_: self.on_done())
+        self._back_callback: Callable[[], None] = self.on_done
+        shell, self.content, _header, self.back_button = page_shell("TV Setup", self._handle_back)
         self.append(shell)
         self.render_provider()
 
@@ -44,19 +45,24 @@ class TVSetupView(Gtk.Box):
             self.content.remove(child)
             child = nxt
 
-    def footer(self, back_cb=None, next_cb=None, next_label="Continue") -> None:
-        buttons: list[Gtk.Button] = []
-        if back_cb is not None:
-            back = secondary_button("Back")
-            back.connect("clicked", lambda *_: back_cb())
-            buttons.append(back)
-        if next_cb is not None:
-            nxt = primary_button(next_label)
-            nxt.connect("clicked", lambda *_: next_cb())
-            buttons.append(nxt)
-        self.content.append(button_row(*buttons))
+    def _handle_back(self, *_args) -> None:
+        if self.back_button is not None and self.back_button.get_sensitive():
+            self._back_callback()
+
+    def _set_back(self, callback: Callable[[], None], *, enabled: bool = True) -> None:
+        self._back_callback = callback
+        if self.back_button is not None:
+            self.back_button.set_sensitive(enabled)
+
+    def footer(self, next_cb=None, next_label="Continue") -> None:
+        if next_cb is None:
+            return
+        nxt = primary_button(next_label)
+        nxt.connect("clicked", lambda *_: next_cb())
+        self.content.append(button_row(nxt))
 
     def render_provider(self) -> None:
+        self._set_back(self.on_done)
         self.clear()
         self.content.append(
             heading(
@@ -69,7 +75,7 @@ class TVSetupView(Gtk.Box):
         group.add(
             action_row(
                 "Android TV / Google TV",
-                "Supported in v1 through ADB for TV power and physical input selection.",
+                "Supported in v1 for TV wake/sleep, input switching, and automatic PC lifecycle behavior.",
             )
         )
         group.add(
@@ -84,6 +90,7 @@ class TVSetupView(Gtk.Box):
         self.content.append(use)
 
     def render_prereqs(self) -> None:
+        self._set_back(self.render_provider)
         self.clear()
         self.content.append(
             heading(
@@ -116,19 +123,27 @@ class TVSetupView(Gtk.Box):
         group.add(docs)
         self.content.append(group)
         try:
-            self.config.tv.adb_path = find_adb(self.config.tv.adb_path)
-            adb = action_row("ADB ready", self.config.tv.adb_path)
+            resolution = resolve_adb(self.config.tv.adb_path)
+            self.config.tv.adb_path = resolution.path
+            title = "ADB found via Homebrew" if resolution.source == "Homebrew" else "ADB ready"
+            adb = action_row(title, resolution.path)
             group.add(adb)
-            self.footer(self.render_provider, self.render_connection)
+            self.footer(self.render_connection, "Continue TV Setup")
         except ADBNotInstalled:
-            missing = action_row("ADB is required", "Install Android platform tools, then return to this page.")
+            missing = action_row(
+                "ADB is required",
+                "On Bazzite, install it with: brew install android-platform-tools. Then recheck without restarting the app.",
+            )
             install_help = secondary_button("Show Install Help")
             install_help.connect("clicked", lambda *_: show_message(self.window, "Install Android platform tools", installation_help()))
             missing.add_suffix(install_help)
             group.add(missing)
-            self.footer(self.render_provider, None)
+            recheck = primary_button("Recheck ADB", fill=True)
+            recheck.connect("clicked", lambda *_: self.render_prereqs())
+            self.content.append(recheck)
 
     def render_connection(self) -> None:
+        self._set_back(self.render_prereqs)
         self.clear()
         self.content.append(
             heading(
@@ -155,7 +170,7 @@ class TVSetupView(Gtk.Box):
         row.add_suffix(use_manual)
         manual_group.add(row)
         self.content.append(manual_group)
-        self.footer(self.render_prereqs, None)
+        
 
         run_background(
             lambda: discover_adb_targets(self.config.tv.adb_path),
@@ -193,6 +208,7 @@ class TVSetupView(Gtk.Box):
         self.render_authorization()
 
     def render_authorization(self) -> None:
+        self._set_back(self.render_connection)
         self.clear()
         self.content.append(
             heading(
@@ -233,7 +249,7 @@ class TVSetupView(Gtk.Box):
         code_row.add_suffix(pair)
         pairing.add(code_row)
         self.content.append(pairing)
-        self.footer(self.render_connection, None)
+        
 
     def _pair(self, button: Gtk.Button) -> None:
         address = self.pair_address.get_text().strip()
@@ -249,6 +265,7 @@ class TVSetupView(Gtk.Box):
         )
 
     def _authorize(self, _button: Gtk.Button) -> None:
+        self._set_back(self.render_connection, enabled=False)
         self.connect_button.set_sensitive(False)
         self.connect_button.set_label("Waiting for TV…")
 
@@ -260,6 +277,7 @@ class TVSetupView(Gtk.Box):
             self.render_identity()
 
         def error(exc: BaseException) -> None:
+            self._set_back(self.render_connection)
             self.connect_button.set_sensitive(True)
             self.connect_button.set_label("Connect & Authorize")
             show_message(self.window, "TV authorization failed", str(exc))
@@ -267,6 +285,7 @@ class TVSetupView(Gtk.Box):
         run_background(work, success, error)
 
     def render_identity(self) -> None:
+        self._set_back(self.render_authorization)
         self.clear()
         self.content.append(heading("TV connected", "ADB authorization succeeded. Give the TV a friendly name."))
         group = Adw.PreferencesGroup()
@@ -284,9 +303,10 @@ class TVSetupView(Gtk.Box):
             self.config.tv.name = self.name_entry.get_text().strip() or self.config.tv.model or "Android TV"
             self.render_power_test()
 
-        self.footer(self.render_authorization, next_step)
+        self.footer(next_step)
 
     def render_power_test(self) -> None:
+        self._set_back(self.render_identity)
         self.clear()
         self.content.append(
             heading(
@@ -316,9 +336,10 @@ class TVSetupView(Gtk.Box):
 
         sleep_btn.connect("clicked", lambda *_: run_power(False, sleep_btn))
         wake_btn.connect("clicked", lambda *_: run_power(True, wake_btn))
-        self.footer(self.render_identity, self.render_inputs, "Continue to Input Setup")
+        self.footer(self.render_inputs, "Continue to Input Setup")
 
     def render_inputs(self) -> None:
+        self._set_back(self.render_power_test)
         self.clear()
         self.content.append(
             heading(
@@ -334,7 +355,7 @@ class TVSetupView(Gtk.Box):
         skip = secondary_button("Skip Input Switching")
         skip.connect("clicked", lambda *_: self._skip_input())
         self.content.append(button_row(skip))
-        self.footer(self.render_power_test, None)
+        
         run_background(
             lambda: asyncio.run(ADBController(self.config).discover_inputs()),
             self._show_inputs,
@@ -383,8 +404,9 @@ class TVSetupView(Gtk.Box):
         self.render_behavior()
 
     def render_behavior(self) -> None:
+        self._set_back(self.render_inputs)
         self.clear()
-        self.content.append(heading("Choose automatic TV behavior", "These are the same lifecycle behaviors from ATV-Couch-Wake, now configured graphically."))
+        self.content.append(heading("Configure TV wake and lifecycle behavior", "Choose exactly when the PC should wake or sleep the TV and whether it should switch to the saved input."))
         group = Adw.PreferencesGroup()
         group.set_title("Automation")
         self.switches: dict[str, Gtk.Switch] = {}
@@ -414,9 +436,10 @@ class TVSetupView(Gtk.Box):
             group.add(row)
             self.switches["switch_input_after_wake"] = switch
         self.content.append(group)
-        self.footer(self.render_inputs, self.finish_setup, "Finish TV Setup")
+        self.footer(self.finish_setup, "Finish TV Setup")
 
     def finish_setup(self) -> None:
+        self._set_back(self.render_behavior, enabled=False)
         for attr, switch in self.switches.items():
             setattr(self.config.behavior, attr, switch.get_active())
         self.clear()
@@ -431,6 +454,7 @@ class TVSetupView(Gtk.Box):
             return install_user_service()
 
         def success(unit) -> None:
+            self._set_back(self.on_done)
             self.clear()
             self.content.append(heading("TV setup complete", f"{self.config.tv.name} is configured and the lifecycle watcher is running."))
             group = Adw.PreferencesGroup()
@@ -438,11 +462,10 @@ class TVSetupView(Gtk.Box):
             group.add(action_row("Input", self.config.tv.input_label if self.config.behavior.switch_input_after_wake and self.config.tv.input_uri else "Automatic input switching disabled"))
             group.add(action_row("Lifecycle watcher", str(unit)))
             self.content.append(group)
-            self.footer(None, self.on_done, "Return to Control Center")
 
         def error(exc: BaseException) -> None:
+            self._set_back(self.render_behavior)
             self.clear()
             self.content.append(heading("TV settings saved, but automation could not start", str(exc)))
-            self.footer(self.render_behavior, self.on_done, "Return to Control Center")
 
         run_background(work, success, error)

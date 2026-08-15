@@ -108,6 +108,19 @@ def main() -> None:
         tv_button.emit("clicked")
         drain_events()
         assert has_titled_widget(window, "Quick prerequisites")
+        tv_view = window.get_content()
+        if not hasattr(tv_view, "back_button"):
+            raise AssertionError("TV setup is missing the shared header back arrow")
+        # Depending on the CI image, adb may be present or absent. Either way the
+        # prerequisite page must expose an actionable next step.
+        try:
+            adb_action = find_button(window, "Continue TV Setup")
+        except AssertionError:
+            adb_action = find_button(window, "Recheck ADB")
+        assert_page_control_visible(adb_action, adb_action.get_label() or "ADB action")
+        tv_view.back_button.emit("clicked")
+        drain_events()
+        assert_page_control_visible(find_button(window, "Set Up Android / Google TV"), "TV provider back navigation")
 
         # Dashboard controller action must show the real controller flow.
         window.show_main()
@@ -115,8 +128,14 @@ def main() -> None:
         find_button(window, "Set Up Controller Wake").emit("clicked")
         drain_events()
         assert window.current_view == "controller-setup"
+        controller_view = window.get_content()
+        if not hasattr(controller_view, "back_button"):
+            raise AssertionError("Controller setup is missing the shared header back arrow")
         scan_button = find_button(window, "Scan USB Devices")
         assert_page_control_visible(scan_button, "Scan USB Devices")
+        controller_view.back_button.emit("clicked")
+        drain_events()
+        assert window.current_view == "main"
 
         # Preferences must show actual settings, not just the heading.
         window.show_main()
@@ -125,6 +144,7 @@ def main() -> None:
         drain_events()
         assert window.current_view == "preferences"
         assert has_titled_widget(window, "Automatically check for updates")
+        assert has_titled_widget(window, "About")
         check_button = find_button(window, "Check Now")
         assert_page_control_visible(check_button, "Check Now")
 

@@ -20,7 +20,8 @@ class ControllerSetupView(Gtk.Box):
         self.devices: list[USBDevice] = []
         self.checks: list[tuple[USBDevice, Gtk.CheckButton]] = []
         self.selected: list[USBDevice] = []
-        shell, self.content, _header = page_shell("Controller Wake Setup", lambda *_: self.on_done())
+        self._back_callback: Callable[[], None] = self.on_done
+        shell, self.content, _header, self.back_button = page_shell("Controller Wake Setup", self._handle_back)
         self.append(shell)
         self.render_prereqs()
 
@@ -31,19 +32,24 @@ class ControllerSetupView(Gtk.Box):
             self.content.remove(child)
             child = nxt
 
-    def footer(self, back_cb=None, next_cb=None, next_label="Continue") -> None:
-        buttons: list[Gtk.Button] = []
-        if back_cb is not None:
-            back = secondary_button("Back")
-            back.connect("clicked", lambda *_: back_cb())
-            buttons.append(back)
-        if next_cb is not None:
-            nxt = primary_button(next_label)
-            nxt.connect("clicked", lambda *_: next_cb())
-            buttons.append(nxt)
-        self.content.append(button_row(*buttons))
+    def _handle_back(self, *_args) -> None:
+        if self.back_button is not None and self.back_button.get_sensitive():
+            self._back_callback()
+
+    def _set_back(self, callback: Callable[[], None], *, enabled: bool = True) -> None:
+        self._back_callback = callback
+        if self.back_button is not None:
+            self.back_button.set_sensitive(enabled)
+
+    def footer(self, next_cb=None, next_label="Continue") -> None:
+        if next_cb is None:
+            return
+        nxt = primary_button(next_label)
+        nxt.connect("clicked", lambda *_: next_cb())
+        self.content.append(button_row(nxt))
 
     def render_prereqs(self) -> None:
+        self._set_back(self.on_done)
         self.clear()
         self.content.append(
             heading(
@@ -68,9 +74,10 @@ class ControllerSetupView(Gtk.Box):
         docs.add_suffix(emphasized_link_button("Read Setup Guide", README_URL))
         group.add(docs)
         self.content.append(group)
-        self.footer(None, self.render_scan, "Scan USB Devices")
+        self.footer(self.render_scan, "Scan USB Devices")
 
     def render_scan(self) -> None:
+        self._set_back(self.render_prereqs)
         self.clear()
         self.content.append(
             heading(
@@ -83,7 +90,7 @@ class ControllerSetupView(Gtk.Box):
         self.scan_status_row = action_row("Scanning…", "Root hubs are hidden from the choice list.")
         self.device_group.add(self.scan_status_row)
         self.content.append(self.device_group)
-        self.footer(self.render_prereqs, None)
+        
         run_background(list_usb_devices, self._show_devices, self._show_scan_error)
 
     def _show_devices(self, devices: list[USBDevice]) -> None:
@@ -148,6 +155,7 @@ class ControllerSetupView(Gtk.Box):
         self.render_review()
 
     def render_review(self) -> None:
+        self._set_back(self.render_scan)
         self.clear()
         self.content.append(
             heading(
@@ -176,9 +184,10 @@ class ControllerSetupView(Gtk.Box):
         )
         group.add(admin)
         self.content.append(group)
-        self.footer(self.render_scan, self.apply, "Apply Controller Wake")
+        self.footer(self.apply, "Apply Controller Wake")
 
     def apply(self) -> None:
+        self._set_back(self.render_review, enabled=False)
         self.clear()
         self.content.append(heading("Applying controller wake…", "Approve the administrator prompt. Wake settings are applied immediately; a reboot is not required just to activate the udev rule."))
         spinner = Gtk.Spinner()
@@ -188,6 +197,7 @@ class ControllerSetupView(Gtk.Box):
         run_background(lambda: manager.configure(self.selected), self._applied, self._apply_error)
 
     def _applied(self, result: str) -> None:
+        self._set_back(self.on_done)
         self.clear()
         self.content.append(heading("Controller wake configured", "The selected USB paths are armed and the 5-second pre-suspend quiet-window guard is installed."))
         group = Adw.PreferencesGroup()
@@ -200,9 +210,8 @@ class ControllerSetupView(Gtk.Box):
             )
         )
         self.content.append(group)
-        self.footer(None, self.on_done, "Return to Control Center")
 
     def _apply_error(self, exc: BaseException) -> None:
+        self._set_back(self.render_review)
         self.clear()
         self.content.append(heading("Controller wake setup failed", str(exc)))
-        self.footer(self.render_review, self.on_done, "Return to Control Center")

@@ -64,33 +64,129 @@ class TVInput:
         return f"{self.hardware_id} — {service}"
 
 
-def find_adb(configured: str = "") -> str:
-    """Resolve adb without modifying the system."""
-    if configured:
-        path = Path(configured).expanduser()
+@dataclass(frozen=True)
+class ADBResolution:
+    path: str
+    source: str
+
+
+def _executable(path: Path) -> str | None:
+    try:
         if path.is_file() and path.stat().st_mode & 0o111:
             return str(path.resolve())
+    except OSError:
+        return None
+    return None
+
+
+def _brew_candidates() -> list[Path]:
+    candidates: list[Path] = []
+    discovered = shutil.which("brew")
+    if discovered:
+        candidates.append(Path(discovered))
+    candidates.extend(
+        [
+            Path("/home/linuxbrew/.linuxbrew/bin/brew"),
+            Path.home() / ".linuxbrew/bin/brew",
+        ]
+    )
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            unique.append(candidate)
+            seen.add(key)
+    return unique
+
+
+def _adb_from_brew() -> str | None:
+    """Resolve Homebrew's adb even when GUI/systemd PATH omits Linuxbrew."""
+    direct_candidates = [
+        Path("/home/linuxbrew/.linuxbrew/bin/adb"),
+        Path("/home/linuxbrew/.linuxbrew/opt/android-platform-tools/bin/adb"),
+        Path.home() / ".linuxbrew/bin/adb",
+        Path.home() / ".linuxbrew/opt/android-platform-tools/bin/adb",
+    ]
+    for candidate in direct_candidates:
+        resolved = _executable(candidate)
+        if resolved:
+            return resolved
+
+    for brew in _brew_candidates():
+        brew_path = _executable(brew)
+        if not brew_path:
+            continue
+
+        prefixes: list[Path] = []
+        for args in ([brew_path, "--prefix", "android-platform-tools"], [brew_path, "--prefix"]):
+            try:
+                result = subprocess.run(
+                    args,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                continue
+            if result.returncode == 0 and result.stdout.strip():
+                prefixes.append(Path(result.stdout.strip()))
+
+        for prefix in prefixes:
+            for candidate in (
+                prefix / "bin/adb",
+                prefix / "opt/android-platform-tools/bin/adb",
+            ):
+                resolved = _executable(candidate)
+                if resolved:
+                    return resolved
+    return None
+
+
+def resolve_adb(configured: str = "") -> ADBResolution:
+    """Resolve adb without modifying the system and report how it was found."""
+    if configured:
+        resolved = _executable(Path(configured).expanduser())
+        if resolved:
+            source = "Homebrew" if "linuxbrew" in resolved.casefold() else "saved path"
+            return ADBResolution(resolved, source)
+
     discovered = shutil.which("adb")
     if discovered:
-        return str(Path(discovered).resolve())
+        resolved = _executable(Path(discovered))
+        if resolved:
+            source = "Homebrew" if "linuxbrew" in resolved.casefold() else "PATH"
+            return ADBResolution(resolved, source)
+
+    brew_adb = _adb_from_brew()
+    if brew_adb:
+        return ADBResolution(brew_adb, "Homebrew")
+
     raise ADBNotInstalled(
-        "Android platform tools were not found. Install your distribution's adb/android-tools "
-        "package, then run setup again."
+        "Android platform tools were not found. On Bazzite, install them with "
+        "'brew install android-platform-tools', then use Recheck ADB."
     )
+
+
+def find_adb(configured: str = "") -> str:
+    """Backward-compatible adb path resolver used by the backend."""
+    return resolve_adb(configured).path
 
 
 def installation_help() -> str:
     return """ADB (Android platform tools) is required but was not found.
 
-Install it with your distribution's supported package method, then rerun this command:
+Install it with your distribution's supported package method, then choose Recheck ADB:
 
+  Bazzite:               brew install android-platform-tools
   Arch Linux / CachyOS:  sudo pacman -S android-tools
   Fedora:                sudo dnf install android-tools
   Debian / Ubuntu:       sudo apt install adb
   openSUSE:              sudo zypper install android-tools
-  Bazzite:               use Bazzite's supported ujust recipe for Android platform tools
 
-HTPC Control Center deliberately does not install or layer system packages for you."""
+HTPC Control Center deliberately does not install or layer system packages for you.
+On Bazzite it also checks Linuxbrew directly, so adb does not need to be on the GUI's PATH."""
 
 
 def input_uri(input_id: str) -> str:

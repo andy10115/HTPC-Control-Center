@@ -57,6 +57,9 @@ Debian / Ubuntu:  python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
 Install Android platform tools before TV setup:
 
 ```bash
+# Bazzite (recommended)
+brew install android-platform-tools
+
 # Fedora
 sudo dnf install android-tools
 
@@ -70,7 +73,7 @@ sudo apt install adb
 sudo zypper install android-tools
 ```
 
-On Bazzite, use the supported Bazzite Portal/ujust method for Android platform tools rather than layering packages.
+On Bazzite, HTPC Control Center checks Linuxbrew directly in addition to the normal graphical-session `PATH`. This matters because an app launched from the desktop may not inherit `/home/linuxbrew/.linuxbrew/bin` even when `brew install android-platform-tools` has already installed ADB. When Homebrew ADB is found, the app saves its absolute path so the lifecycle watcher does not depend on shell PATH setup later.
 
 ### Controller wake
 
@@ -106,7 +109,7 @@ The installer:
 2. Creates an isolated virtual environment under `~/.local/share/htpc-control-center/venv` with access to the distribution's GI bindings.
 3. Installs the application and Python-only dependencies into that environment.
 4. Installs `htpc-control-center` under `~/.local/bin`.
-5. Installs a normal desktop entry.
+5. Installs a normal desktop entry and the purple HTPC Control Center application icon.
 6. Does **not** install ADB, usbutils, system packages, udev rules, or privileged services automatically.
 
 Launch **HTPC Control Center** from the application menu or run:
@@ -126,7 +129,7 @@ htpc-control-center-uninstall
 The uninstaller:
 
 1. Stops and removes the per-user TV lifecycle watcher.
-2. Removes the application, desktop entry, and local virtual environment.
+2. Removes the application, desktop entry, application icon, and local virtual environment.
 3. Requests administrator authorization through Polkit to remove HTPC Control Center's udev rule, controller wake targets, privileged helper, and 5-second suspend guard when those components were configured.
 4. Removes the saved HTPC Control Center configuration and update state.
 
@@ -206,7 +209,7 @@ Choose **Set Up My TV** from the main page.
 The app will:
 
 1. Offer **Android TV / Google TV** as the supported v1 provider.
-2. Check that `adb` is installed.
+2. Resolve `adb` from the saved absolute path, normal PATH, or Homebrew/Linuxbrew. If it is still missing, the page provides **Recheck ADB** after installation.
 3. Try to discover existing/mDNS ADB endpoints first.
 4. Always provide manual IP/port entry as a fallback.
 5. Support the optional six-digit Wireless debugging pairing workflow.
@@ -412,6 +415,17 @@ Do not claim support for a TV platform solely from protocol documentation withou
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the provider boundary, controller-wake invariants, and local test commands.
 
 # Troubleshooting
+
+## TV setup says ADB is missing on Bazzite
+
+Confirm Homebrew has Android platform tools:
+
+```bash
+brew install android-platform-tools
+brew --prefix android-platform-tools
+```
+
+Then choose **Recheck ADB** in the TV setup page. HTPC Control Center checks Linuxbrew directly and does not require the GUI process to inherit your interactive shell PATH.
 
 ## TV is not discovered
 

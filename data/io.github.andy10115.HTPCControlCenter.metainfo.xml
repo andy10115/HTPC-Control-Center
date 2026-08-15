@@ -9,9 +9,13 @@
     <p>HTPC Control Center provides a GTK4/libadwaita interface for console-like TV power/input automation and USB controller wake from suspend.</p>
   </description>
   <launchable type="desktop-id">io.github.andy10115.HTPCControlCenter.desktop</launchable>
+  <icon type="stock">io.github.andy10115.HTPCControlCenter</icon>
   <url type="homepage">https://github.com/andy10115/HTPC-Control-Center</url>
   <developer id="io.github.andy10115"><name>Andy East</name></developer>
   <releases>
+    <release version="0.3.4" date="2026-08-14"/>
+    <release version="0.3.3" date="2026-08-14"/>
+    <release version="0.3.2" date="2026-08-14"/>
     <release version="0.3.1" date="2026-08-14"/>
     <release version="0.2.1" date="2026-08-14"/>
     <release version="0.2.0" date="2026-08-14"/>

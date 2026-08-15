@@ -51,7 +51,7 @@ def build_main_page(
     update_info: UpdateInfo | None = None,
     on_update: Callable[[UpdateInfo], None] | None = None,
 ) -> Gtk.Widget:
-    page, content, header = page_shell("HTPC Control Center", maximum_size=1220)
+    page, content, header, _back = page_shell("HTPC Control Center", maximum_size=1220)
 
     preferences = secondary_button("Preferences")
     preferences.set_tooltip_text("Preferences and update settings")
@@ -109,7 +109,7 @@ def build_main_page(
     config = load_config(required=False)
 
     # TV column
-    tv_column.append(heading("TV Control", "Wake, sleep, and switch inputs automatically.", level=2))
+    tv_column.append(heading("TV Control", level=2))
     tv_group = Adw.PreferencesGroup()
     if config.tv_configured:
         svc = service_status()
@@ -186,14 +186,8 @@ def build_main_page(
         setup_tv.connect("clicked", open_tv_setup)
         tv_column.append(setup_tv)
 
-    platforms = Adw.PreferencesGroup()
-    platforms.set_title("TV platform support")
-    platforms.add(action_row("Android TV / Google TV", "Supported through ADB."))
-    platforms.add(action_row("Other TV operating systems", "Contributors needed for additional TV providers."))
-    tv_column.append(platforms)
-
     # Controller column
-    controller_column.append(heading("Controller Wake", "Wake the PC from suspend with a USB controller receiver.", level=2))
+    controller_column.append(heading("Controller Wake", level=2))
     controller_group = Adw.PreferencesGroup()
     cstatus = controller_manager.status()
     if cstatus.configured:
@@ -262,12 +256,6 @@ def build_main_page(
 
         setup_controller.connect("clicked", open_controller_setup)
         controller_column.append(setup_controller)
-
-    controller_notes = Adw.PreferencesGroup()
-    controller_notes.set_title("Controller wake notes")
-    controller_notes.add(action_row("USB receiver required", "Bluetooth-only wake is not configured here."))
-    controller_notes.add(action_row("5-second quiet window", "Prevents controller power-off chatter from immediately waking the PC again."))
-    controller_column.append(controller_notes)
 
     content.append(grid)
     return page

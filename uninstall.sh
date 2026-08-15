@@ -27,6 +27,8 @@ rm -f "$HOME/.local/bin/htpc-control-center"
 rm -f "$HOME/.local/bin/htpc-control-center-uninstall"
 rm -f "$DATA_HOME/applications/$APP_ID.desktop"
 rm -f "$DATA_HOME/metainfo/$APP_ID.metainfo.xml"
+rm -f "$DATA_HOME/icons/hicolor/scalable/apps/$APP_ID.svg"
+rm -f "$DATA_HOME/icons/hicolor/256x256/apps/$APP_ID.png"
 rm -rf "$APP_HOME"
 
 if (( KEEP_CONFIG == 0 )); then
@@ -36,5 +38,6 @@ else
 fi
 
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DATA_HOME/applications" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -t "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
 
 echo "HTPC Control Center removed."

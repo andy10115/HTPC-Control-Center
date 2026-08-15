@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3d2366"/>
+      <stop offset="1" stop-color="#6f3fc3"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="52" fill="url(#bg)"/>
+
+  <!-- TV -->
+  <path d="M82 50 L108 64 M174 50 L148 64" fill="none" stroke="#d9c5ff" stroke-width="10" stroke-linecap="round"/>
+  <rect x="48" y="64" width="160" height="112" rx="20" fill="none" stroke="#d9c5ff" stroke-width="12"/>
+  <path d="M102 190 H154" fill="none" stroke="#d9c5ff" stroke-width="11" stroke-linecap="round"/>
+
+  <!-- Controller overlapping the TV -->
+  <path d="M88 135
+           C72 135 61 146 57 163
+           L49 197
+           C46 211 56 220 67 220
+           C75 220 82 215 88 206
+           L99 190
+           H157
+           L168 206
+           C174 215 181 220 189 220
+           C200 220 210 211 207 197
+           L199 163
+           C195 146 184 135 168 135
+           Z"
+        fill="#5b2fa5" stroke="#f0e8ff" stroke-width="10" stroke-linejoin="round"/>
+
+  <!-- D-pad -->
+  <path d="M91 153 V177 M79 165 H103" fill="none" stroke="#f0e8ff" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Face buttons -->
+  <circle cx="169" cy="157" r="6" fill="#f0e8ff"/>
+  <circle cx="182" cy="170" r="6" fill="#f0e8ff"/>
+  <circle cx="156" cy="170" r="6" fill="#f0e8ff"/>
+  <circle cx="169" cy="183" r="6" fill="#f0e8ff"/>
+
+  <!-- Center buttons -->
+  <circle cx="119" cy="169" r="4" fill="#d9c5ff"/>
+  <circle cx="137" cy="169" r="4" fill="#d9c5ff"/>
+</svg>

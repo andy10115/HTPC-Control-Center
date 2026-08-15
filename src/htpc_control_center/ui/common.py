@@ -38,7 +38,7 @@ def page_shell(
     on_back: Callable[..., None] | None = None,
     *,
     maximum_size: int = 1120,
-) -> tuple[Gtk.Widget, Gtk.Box, Adw.HeaderBar]:
+) -> tuple[Gtk.Widget, Gtk.Box, Adw.HeaderBar, Gtk.Button | None]:
     toolbar = Adw.ToolbarView()
     # Sub-pages wrap ToolbarView inside a Gtk.Box. Without expand flags GTK
     # allocates only the toolbar's natural height, leaving the rest of the
@@ -50,6 +50,7 @@ def page_shell(
     title_widget = Adw.WindowTitle()
     title_widget.set_title(title)
     header.set_title_widget(title_widget)
+    back: Gtk.Button | None = None
     if on_back is not None:
         back = Gtk.Button.new_from_icon_name("go-previous-symbolic")
         back.set_tooltip_text("Back")
@@ -73,7 +74,7 @@ def page_shell(
     clamp.set_child(content)
     scroller.set_child(clamp)
     toolbar.set_content(scroller)
-    return toolbar, content, header
+    return toolbar, content, header, back
 
 
 def heading(text: str, subtitle: str = "", *, level: int = 1) -> Gtk.Box:

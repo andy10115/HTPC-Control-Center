@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from htpc_control_center.config import AppConfig
+import htpc_control_center.tv.android as android
 from htpc_control_center.tv.android import (
     TVControlError,
     input_uri,
@@ -47,6 +51,42 @@ TvInputInfo{id=com.android.tv/.TunerInputService/TUNER, type=TYPE_TUNER}
             set_tv_endpoint(config, "not-a-tv")
         with self.assertRaises(TVControlError):
             set_tv_endpoint(config, "2001:db8::1")
+
+    def test_resolve_adb_uses_homebrew_when_gui_path_misses_adb(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            adb = Path(tmp) / "adb"
+            adb.write_text("#!/bin/sh\n", encoding="utf-8")
+            adb.chmod(0o755)
+            with mock.patch.object(android.shutil, "which", return_value=None), mock.patch.object(
+                android, "_adb_from_brew", return_value=str(adb)
+            ):
+                resolution = android.resolve_adb()
+        self.assertEqual(resolution.path, str(adb))
+        self.assertEqual(resolution.source, "Homebrew")
+
+    def test_homebrew_formula_prefix_resolves_adb(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            brew = root / "brew"
+            brew.write_text("#!/bin/sh\n", encoding="utf-8")
+            brew.chmod(0o755)
+            formula = root / "opt/android-platform-tools"
+            formula.mkdir(parents=True)
+            adb = formula / "bin/adb"
+            adb.parent.mkdir(parents=True)
+            adb.write_text("#!/bin/sh\n", encoding="utf-8")
+            adb.chmod(0o755)
+            completed = android.subprocess.CompletedProcess(
+                args=[str(brew), "--prefix", "android-platform-tools"],
+                returncode=0,
+                stdout=str(formula) + "\n",
+                stderr="",
+            )
+            with mock.patch.object(android, "_brew_candidates", return_value=[brew]), mock.patch.object(
+                android.subprocess, "run", return_value=completed
+            ):
+                resolved = android._adb_from_brew()
+        self.assertEqual(resolved, str(adb))
 
 
 if __name__ == "__main__":

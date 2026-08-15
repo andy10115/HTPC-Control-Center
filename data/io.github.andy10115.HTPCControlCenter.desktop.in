@@ -2,7 +2,7 @@
 Name=HTPC Control Center
 Comment=Configure TV automation and controller wake for a Linux HTPC
 Exec=@EXEC@
-Icon=preferences-system
+Icon=io.github.andy10115.HTPCControlCenter
 Terminal=false
 Type=Application
 Categories=Utility;System;Game;

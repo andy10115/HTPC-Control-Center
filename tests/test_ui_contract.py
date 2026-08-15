@@ -42,6 +42,40 @@ class UIContractSourceTests(unittest.TestCase):
         self.assertIn('Adw.SwitchRow()', source)
         self.assertIn('"Automatically check for updates"', source)
 
+    def test_main_page_keeps_status_but_drops_extra_notes(self) -> None:
+        source = (ROOT / "src/htpc_control_center/ui/main_page.py").read_text(encoding="utf-8")
+        self.assertIn('status_label(', source)
+        self.assertNotIn('"TV platform support"', source)
+        self.assertNotIn('"Controller wake notes"', source)
+
+    def test_preferences_is_updates_and_about_only(self) -> None:
+        source = (ROOT / "src/htpc_control_center/ui/preferences.py").read_text(encoding="utf-8")
+        self.assertIn('updates_group.set_title("Updates")', source)
+        self.assertIn('about_group.set_title("About")', source)
+        self.assertNotIn('heading("TV"', source)
+        self.assertNotIn('heading("Controller Wake"', source)
+
+    def test_setup_flows_use_header_back_arrow_only(self) -> None:
+        for relative in ("ui/tv_setup.py", "ui/controller_setup.py"):
+            source = (ROOT / "src/htpc_control_center" / relative).read_text(encoding="utf-8")
+            self.assertIn('self._set_back(', source)
+            self.assertNotIn('secondary_button("Back")', source)
+
+    def test_tv_setup_can_recheck_bazzite_homebrew_adb(self) -> None:
+        source = (ROOT / "src/htpc_control_center/ui/tv_setup.py").read_text(encoding="utf-8")
+        backend = (ROOT / "src/htpc_control_center/tv/android.py").read_text(encoding="utf-8")
+        self.assertIn('primary_button("Recheck ADB", fill=True)', source)
+        self.assertIn('"ADB found via Homebrew"', source)
+        self.assertIn('/home/linuxbrew/.linuxbrew/bin/brew', backend)
+        self.assertIn('brew install android-platform-tools', backend)
+
+    def test_application_icons_are_shipped(self) -> None:
+        icons = ROOT / "data/icons"
+        stem = "io.github.andy10115.HTPCControlCenter"
+        self.assertTrue((icons / f"{stem}.svg").is_file())
+        self.assertTrue((icons / f"{stem}.png").is_file())
+        self.assertTrue((icons / f"{stem}.ico").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

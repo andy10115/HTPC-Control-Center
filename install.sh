@@ -12,6 +12,8 @@ VENV="$APP_HOME/venv"
 BIN_DIR="$HOME/.local/bin"
 DESKTOP_DIR="$DATA_HOME/applications"
 METAINFO_DIR="$DATA_HOME/metainfo"
+ICON_SCALABLE_DIR="$DATA_HOME/icons/hicolor/scalable/apps"
+ICON_256_DIR="$DATA_HOME/icons/hicolor/256x256/apps"
 
 fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 
@@ -44,7 +46,10 @@ MSG
     exit 1
 fi
 
-mkdir -p "$APP_HOME" "$BIN_DIR" "$DESKTOP_DIR" "$METAINFO_DIR"
+mkdir -p "$APP_HOME" "$BIN_DIR" "$DESKTOP_DIR" "$METAINFO_DIR" "$ICON_SCALABLE_DIR" "$ICON_256_DIR"
+if [[ ! -f "$DATA_HOME/icons/hicolor/index.theme" && -f /usr/share/icons/hicolor/index.theme ]]; then
+    cp /usr/share/icons/hicolor/index.theme "$DATA_HOME/icons/hicolor/index.theme"
+fi
 
 if [[ ! -x "$VENV/bin/python" ]]; then
     "$PYTHON" -m venv --system-site-packages "$VENV"
@@ -63,8 +68,12 @@ text = source.read_text(encoding="utf-8").replace("@EXEC@", str(executable))
 destination.write_text(text, encoding="utf-8")
 PY
 cp "$SCRIPT_DIR/data/$APP_ID.metainfo.xml" "$METAINFO_DIR/$APP_ID.metainfo.xml"
+cp "$SCRIPT_DIR/data/icons/$APP_ID.svg" "$ICON_SCALABLE_DIR/$APP_ID.svg"
+cp "$SCRIPT_DIR/data/icons/$APP_ID.png" "$ICON_256_DIR/$APP_ID.png"
+cp "$SCRIPT_DIR/data/icons/$APP_ID.ico" "$APP_HOME/$APP_ID.ico"
 
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -t "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
 
 echo
 echo "$APP_NAME installed."
