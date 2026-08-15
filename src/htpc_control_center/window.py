@@ -1,6 +1,7 @@
 """Main application window and page routing."""
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
 
@@ -16,50 +17,80 @@ from .ui.main_page import build_main_page
 from .ui.preferences import PreferencesView
 from .ui.tv_setup import TVSetupView
 
+LOGGER = logging.getLogger(__name__)
+
 
 class MainWindow(Adw.ApplicationWindow):
+    """Single-window router.
+
+    Pages replace the current window content directly. This intentionally avoids
+    hidden/stacked navigation state: every dashboard action constructs and shows
+    its destination immediately, and each sub-page owns an explicit Back action.
+    """
+
     def __init__(self, application: Adw.Application) -> None:
         super().__init__(application=application)
         self.set_title("HTPC Control Center")
         self.set_default_size(1220, 840)
         self.set_size_request(820, 620)
-        self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
-        self.stack.set_transition_duration(180)
-        self.set_content(self.stack)
         self.available_update = updates.cached_available_update()
         self._update_check_started = False
         self._update_installing = False
+        self.current_view = ""
         self.show_main()
 
-    def _replace(self, name: str, widget: Gtk.Widget) -> None:
-        existing = self.stack.get_child_by_name(name)
-        if existing is not None:
-            self.stack.remove(existing)
-        self.stack.add_named(widget, name)
-        self.stack.set_visible_child_name(name)
+    def _show(self, name: str, widget: Gtk.Widget) -> None:
+        self.current_view = name
+        self.set_content(widget)
+
+    def _show_navigation_error(self, destination: str, exc: BaseException) -> None:
+        LOGGER.exception("Could not open %s", destination, exc_info=exc)
+        show_message(
+            self,
+            f"Could not open {destination}",
+            f"HTPC Control Center could not build that page.\n\n{exc}",
+        )
 
     def show_main(self) -> None:
         self.available_update = updates.cached_available_update()
-        page = build_main_page(
-            self,
-            on_tv_setup=self.show_tv_setup,
-            on_controller_setup=self.show_controller_setup,
-            on_refresh=self.show_main,
-            on_preferences=self.show_preferences,
-            update_info=self.available_update,
-            on_update=self.install_update,
-        )
-        self._replace("main", page)
+        try:
+            page = build_main_page(
+                self,
+                on_tv_setup=self.show_tv_setup,
+                on_controller_setup=self.show_controller_setup,
+                on_refresh=self.show_main,
+                on_preferences=self.show_preferences,
+                update_info=self.available_update,
+                on_update=self.install_update,
+            )
+        except Exception as exc:
+            self._show_navigation_error("Control Center", exc)
+            return
+        self._show("main", page)
 
     def show_tv_setup(self) -> None:
-        self._replace("tv-setup", TVSetupView(self, self.show_main))
+        try:
+            page = TVSetupView(self, self.show_main)
+        except Exception as exc:
+            self._show_navigation_error("TV Setup", exc)
+            return
+        self._show("tv-setup", page)
 
     def show_controller_setup(self) -> None:
-        self._replace("controller-setup", ControllerSetupView(self, self.show_main))
+        try:
+            page = ControllerSetupView(self, self.show_main)
+        except Exception as exc:
+            self._show_navigation_error("Controller Wake Setup", exc)
+            return
+        self._show("controller-setup", page)
 
     def show_preferences(self) -> None:
-        self._replace("preferences", PreferencesView(self, self.show_main, self.restart_after_update))
+        try:
+            page = PreferencesView(self, self.show_main, self.restart_after_update)
+        except Exception as exc:
+            self._show_navigation_error("Preferences", exc)
+            return
+        self._show("preferences", page)
 
     def start_update_check(self) -> None:
         if self._update_check_started:
@@ -70,7 +101,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         def checked(info: updates.UpdateInfo | None) -> None:
             self.available_update = info
-            if info is not None and self.stack.get_visible_child_name() == "main":
+            if info is not None and self.current_view == "main":
                 self.show_main()
 
         # Automatic checks intentionally fail silently. A network outage should

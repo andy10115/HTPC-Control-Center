@@ -38,7 +38,7 @@ APP_CSS = b"""
 
 .couch-button {
   min-height: 48px;
-  min-width: 220px;
+  min-width: 140px;
   padding-left: 14px;
   padding-right: 14px;
   font-weight: 650;

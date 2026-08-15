@@ -115,6 +115,29 @@ Launch **HTPC Control Center** from the application menu or run:
 htpc-control-center
 ```
 
+## Uninstall
+
+Every normal install also installs an uninstaller, so you do **not** need to keep the repository checkout. Remove HTPC Control Center with:
+
+```bash
+htpc-control-center-uninstall
+```
+
+The uninstaller:
+
+1. Stops and removes the per-user TV lifecycle watcher.
+2. Removes the application, desktop entry, and local virtual environment.
+3. Requests administrator authorization through Polkit to remove HTPC Control Center's udev rule, controller wake targets, privileged helper, and 5-second suspend guard when those components were configured.
+4. Removes the saved HTPC Control Center configuration and update state.
+
+To remove the application and automation while keeping the saved TV configuration for a later reinstall:
+
+```bash
+htpc-control-center-uninstall --keep-config
+```
+
+If you are working directly from a repository checkout, `./uninstall.sh` and `./uninstall.sh --keep-config` perform the same actions.
+
 ## Application updates
 
 HTPC Control Center uses **GitHub Releases**, not the development `main` branch, as its application update channel.
@@ -429,21 +452,6 @@ Check motherboard firmware, USB wake support, active suspend mode, and whether t
 
 That is intentional when controller wake is configured. The delay is the quiet window that prevents receiver/controller power-off traffic from immediately bouncing the system back awake.
 
-# Uninstall
-
-From the repository checkout:
-
-```bash
-./uninstall.sh
-```
-
-This disables the TV watcher, removes the app installation, and asks Polkit to purge HTPC Control Center's privileged controller-wake components when they exist.
-
-To keep the saved TV configuration while removing the application:
-
-```bash
-./uninstall.sh --keep-config
-```
 
 # Origin
 

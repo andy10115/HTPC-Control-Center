@@ -42,24 +42,16 @@ class PreferencesView(Gtk.Box):
     def _build(self) -> None:
         page, content, _header = page_shell("Preferences", lambda *_: self.on_back(), maximum_size=1220)
         self.append(page)
-        content.append(
-            heading(
-                "Preferences",
-                "Adjust update behavior and review the current TV and controller configuration state.",
-                level=1,
-            )
-        )
+        content.append(heading("Preferences", "Updates and current configuration at a glance.", level=1))
 
         preferences = updates.load_preferences()
         updates_group = Adw.PreferencesGroup()
         updates_group.set_title("Updates")
-
-        current = action_row("Installed version", __version__)
-        updates_group.add(current)
+        updates_group.add(action_row("Installed version", __version__))
 
         automatic = Adw.SwitchRow()
         automatic.set_title("Automatically check for updates")
-        automatic.set_subtitle("Check GitHub Releases at most once every 24 hours. Updates are never installed silently.")
+        automatic.set_subtitle("Check stable GitHub Releases at most once every 24 hours. Updates are never installed silently.")
         automatic.set_active(preferences.automatically_check)
 
         def changed(row: Adw.SwitchRow, _param) -> None:
@@ -81,48 +73,54 @@ class PreferencesView(Gtk.Box):
         updates_group.add(self.update_row)
         self._refresh_update_row(updates.cached_available_update())
 
-        releases = action_row("GitHub Releases", "Stable releases are the only update channel used by the application.")
+        releases = action_row("GitHub Releases", "Stable releases are the only update channel used by the app.")
         releases.add_suffix(emphasized_link_button("Open Releases", RELEASES_URL))
         updates_group.add(releases)
         content.append(updates_group)
 
-        columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=24)
-        columns.set_homogeneous(True)
-        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
-        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
-        columns.append(left)
-        columns.append(right)
+        columns = Gtk.Grid()
+        columns.set_column_homogeneous(True)
+        columns.set_column_spacing(28)
+        columns.set_hexpand(True)
+
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        left.set_hexpand(True)
+        right.set_hexpand(True)
+        columns.attach(left, 0, 0, 1, 1)
+        columns.attach(right, 1, 0, 1, 1)
 
         config = load_config(required=False)
-        tv_status = service_status() if config.tv_configured else None
-        left.append(heading("TV", "Current TV-control state and shortcuts.", level=2))
+        left.append(heading("TV", "Current TV automation state.", level=2))
         tv_group = Adw.PreferencesGroup()
         if config.tv_configured:
+            svc = service_status()
             name = config.tv.name or config.tv.model or "Android / Google TV"
-            detail = f"{name} • {config.tv.serial}"
-            if config.tv.input_label:
-                detail += f" • input: {config.tv.input_label}"
-            row = action_row("Configured TV", detail)
-            row.add_suffix(status_label("Watcher running" if tv_status and tv_status.active else "Watcher stopped", "success" if tv_status and tv_status.active else "warning"))
+            row = action_row("Configured TV", name)
+            row.add_suffix(status_label("Watcher running" if svc.active else "Watcher stopped", "success" if svc.active else "warning"))
             tv_group.add(row)
-            behavior = []
-            if config.tv.wake_enabled:
-                behavior.append("wake")
-            if config.tv.sleep_on_suspend:
-                behavior.append("sleep on suspend")
-            if config.tv.shutdown_sleep:
-                behavior.append("sleep on shutdown")
-            if config.tv.select_input_on_wake and config.tv.input_label:
-                behavior.append("select input on wake")
-            tv_group.add(action_row("Enabled actions", ", ".join(behavior) if behavior else "No lifecycle actions are currently enabled."))
+            enabled = []
+            if config.behavior.on_startup:
+                enabled.append("wake on start")
+            if config.behavior.on_resume:
+                enabled.append("wake on resume")
+            if config.behavior.off_on_suspend:
+                enabled.append("sleep on suspend")
+            if config.behavior.off_on_shutdown:
+                enabled.append("sleep on shutdown")
+            if config.behavior.off_on_reboot:
+                enabled.append("sleep on reboot")
+            if config.behavior.switch_input_after_wake and config.tv.input_uri:
+                enabled.append("select input")
+            tv_group.add(action_row("Enabled actions", ", ".join(enabled) if enabled else "No lifecycle actions enabled."))
         else:
-            tv_group.add(action_row("Not configured", "Android TV / Google TV is the supported backend in the initial release."))
-        tv_docs = action_row("Setup guide", "Review Android / Google TV preparation steps and troubleshooting.")
-        tv_docs.add_suffix(emphasized_link_button("Open Guide", README_URL))
-        tv_group.add(tv_docs)
+            tv_group.add(action_row("Not configured", "Android / Google TV is the supported v1 backend."))
+        docs = action_row("TV setup guide", "Preparation and troubleshooting.")
+        docs.add_suffix(emphasized_link_button("Open Guide", README_URL))
+        tv_group.add(docs)
         left.append(tv_group)
 
-        right.append(heading("Controller Wake", "Current controller-wake state and reminders.", level=2))
+        right.append(heading("Controller Wake", "Current USB wake state.", level=2))
         controller_group = Adw.PreferencesGroup()
         cstatus = manager.status()
         if cstatus.configured:
@@ -130,22 +128,17 @@ class PreferencesView(Gtk.Box):
             row = action_row("Configured receivers", devices)
             row.add_suffix(status_label("Wake paths armed" if cstatus.all_targets_enabled else "Check wake paths", "success" if cstatus.all_targets_enabled else "warning"))
             controller_group.add(row)
-            controller_group.add(action_row("Guard behavior", "Configured wake nodes are disarmed for 5 seconds immediately before suspend, then re-armed."))
+            controller_group.add(action_row("Quiet window", "5 seconds immediately before suspend."))
         else:
-            controller_group.add(action_row("Not configured", "Choose one or more USB controller receivers and HTPC Control Center will trace their real wake-capable USB path."))
-        controller_group.add(action_row("Hardware reminder", "Motherboard firmware still needs USB wake support enabled. Bluetooth-only controller wake is not configured here."))
+            controller_group.add(action_row("Not configured", "No USB controller wake paths are configured."))
+        controller_group.add(action_row("Hardware requirement", "Motherboard firmware must allow USB wake from suspend."))
         right.append(controller_group)
 
         content.append(columns)
 
         about_group = Adw.PreferencesGroup()
         about_group.set_title("About")
-        about_group.add(
-            action_row(
-                "HTPC Control Center",
-                "Native GTK4/libadwaita control center for Linux HTPC TV automation and controller wake.",
-            )
-        )
+        about_group.add(action_row("HTPC Control Center", "GTK4/libadwaita TV automation and controller wake for Linux HTPCs."))
         content.append(about_group)
 
     @staticmethod

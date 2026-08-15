@@ -7,7 +7,7 @@ from gi.repository import Adw, Gtk
 
 from ..controller.discovery import ControllerDiscoveryError, USBDevice, list_usb_devices
 from ..controller import manager
-from .common import action_row, button_row, confirm, heading, page_shell, primary_button, run_background, secondary_button, show_message
+from .common import action_row, button_row, confirm, emphasized_link_button, heading, page_shell, primary_button, run_background, secondary_button, show_message
 
 README_URL = "https://github.com/andy10115/HTPC-Control-Center#controller-wake-setup"
 
@@ -65,7 +65,7 @@ class ControllerSetupView(Gtk.Box):
             )
             group.add(legacy)
         docs = action_row("Need details?", "Read the controller setup and troubleshooting sections in the README.")
-        docs.add_suffix(Gtk.LinkButton(uri=README_URL, label="Read Setup Guide"))
+        docs.add_suffix(emphasized_link_button("Read Setup Guide", README_URL))
         group.add(docs)
         self.content.append(group)
         self.footer(None, self.render_scan, "Scan USB Devices")

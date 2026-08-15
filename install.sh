@@ -52,6 +52,8 @@ fi
 
 "$VENV/bin/python" -m pip install --disable-pip-version-check --upgrade "$SCRIPT_DIR"
 ln -sfn "$VENV/bin/htpc-control-center" "$BIN_DIR/htpc-control-center"
+install -m 0755 "$SCRIPT_DIR/uninstall.sh" "$APP_HOME/uninstall.sh"
+ln -sfn "$APP_HOME/uninstall.sh" "$BIN_DIR/htpc-control-center-uninstall"
 
 "$PYTHON" - "$SCRIPT_DIR/data/$APP_ID.desktop.in" "$DESKTOP_DIR/$APP_ID.desktop" "$BIN_DIR/htpc-control-center" <<'PY'
 from pathlib import Path
@@ -67,6 +69,7 @@ command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$
 echo
 echo "$APP_NAME installed."
 echo "Launch it from your application menu or run: htpc-control-center"
+echo "Uninstall anytime with: htpc-control-center-uninstall"
 echo
 echo "TV setup requires adb/android-tools, but it does not need to be installed just to launch the app."
 echo "Controller setup will request administrator authorization through Polkit only when applying privileged wake configuration."

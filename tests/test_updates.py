@@ -46,16 +46,16 @@ class UpdateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             paths = make_paths(Path(tmp))
             payload = {
-                "tag_name": "v0.3.0",
-                "html_url": "https://github.com/andy10115/HTPC-Control-Center/releases/tag/v0.3.0",
-                "tarball_url": "https://api.github.com/repos/andy10115/HTPC-Control-Center/tarball/v0.3.0",
+                "tag_name": "v0.4.0",
+                "html_url": "https://github.com/andy10115/HTPC-Control-Center/releases/tag/v0.4.0",
+                "tarball_url": "https://api.github.com/repos/andy10115/HTPC-Control-Center/tarball/v0.4.0",
             }
             with patch.object(updates, "_request_latest_release", return_value=payload) as request:
                 info = updates.check_for_updates(paths, force=True, now=1234.0)
             request.assert_called_once()
             self.assertIsNotNone(info)
             assert info is not None
-            self.assertEqual(info.version, "0.3.0")
+            self.assertEqual(info.version, "0.4.0")
             self.assertEqual(updates.load_state(paths).last_check_epoch, 1234.0)
             self.assertEqual(updates.cached_available_update(paths), info)
 
@@ -64,8 +64,8 @@ class UpdateTests(unittest.TestCase):
             paths = make_paths(Path(tmp))
             state = updates.UpdateState(
                 last_check_epoch=1000.0,
-                latest_version="0.3.0",
-                latest_tag="v0.3.0",
+                latest_version="0.4.0",
+                latest_tag="v0.4.0",
                 latest_html_url="https://example.test/release",
                 latest_tarball_url="https://example.test/release.tar.gz",
             )
@@ -103,16 +103,16 @@ class UpdateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             archive = root / "release.tar.gz"
-            source = root / "repo-v0.3.0"
+            source = root / "repo-v0.4.0"
             source.mkdir()
             installer = source / "install.sh"
             installer.write_text("#!/usr/bin/env bash\nset -e\necho update-ok\n", encoding="utf-8")
             with tarfile.open(archive, "w:gz") as tar:
-                tar.add(source, arcname="HTPC-Control-Center-v0.3.0")
+                tar.add(source, arcname="HTPC-Control-Center-v0.4.0")
 
             info = updates.UpdateInfo(
-                version="0.3.0",
-                tag_name="v0.3.0",
+                version="0.4.0",
+                tag_name="v0.4.0",
                 html_url="https://example.test/release",
                 tarball_url="https://example.test/release.tar.gz",
             )

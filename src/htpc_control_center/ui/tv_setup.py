@@ -19,7 +19,7 @@ from ..tv.android import (
     set_tv_endpoint,
 )
 from ..tv.systemd import install_user_service
-from .common import action_row, button_row, heading, page_shell, primary_button, run_background, secondary_button, show_message
+from .common import action_row, button_row, emphasized_link_button, heading, page_shell, primary_button, run_background, secondary_button, show_message
 
 README_URL = "https://github.com/andy10115/HTPC-Control-Center#android-tv--google-tv-setup"
 
@@ -66,22 +66,22 @@ class TVSetupView(Gtk.Box):
         )
         group = Adw.PreferencesGroup()
         group.set_title("Choose a TV operating system")
-        android = action_row(
-            "Android TV / Google TV",
-            "Supported — uses ADB over your local network for power and physical input selection.",
+        group.add(
+            action_row(
+                "Android TV / Google TV",
+                "Supported in v1 through ADB for TV power and physical input selection.",
+            )
         )
-        use = primary_button("Use Android / Google TV")
-        use.connect("clicked", lambda *_: self.render_prereqs())
-        android.add_suffix(use)
-        group.add(android)
         group.add(
             action_row(
                 "Other TV operating systems",
-                "Contributors needed. The v1 project has no untestable placeholder backends.",
+                "Contributors needed for additional TV providers.",
             )
         )
         self.content.append(group)
-        self.footer(None, None)
+        use = primary_button("Set Up Android / Google TV", fill=True)
+        use.connect("clicked", lambda *_: self.render_prereqs())
+        self.content.append(use)
 
     def render_prereqs(self) -> None:
         self.clear()
@@ -112,7 +112,7 @@ class TVSetupView(Gtk.Box):
             )
         )
         docs = action_row("Need detailed steps?", "Open the README setup guide before continuing.")
-        docs.add_suffix(Gtk.LinkButton(uri=README_URL, label="Read Setup Guide"))
+        docs.add_suffix(emphasized_link_button("Read Setup Guide", README_URL))
         group.add(docs)
         self.content.append(group)
         try:

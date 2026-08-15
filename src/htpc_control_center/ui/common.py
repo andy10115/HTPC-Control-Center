@@ -108,16 +108,22 @@ def button_row(*buttons: Gtk.Button) -> Gtk.Box:
     return box
 
 
-def primary_button(label: str) -> Gtk.Button:
+def primary_button(label: str, *, fill: bool = False) -> Gtk.Button:
     button = Gtk.Button(label=label)
     button.add_css_class("suggested-action")
     button.add_css_class("couch-button")
+    if fill:
+        button.set_hexpand(True)
+        button.set_halign(Gtk.Align.FILL)
     return button
 
 
-def secondary_button(label: str) -> Gtk.Button:
+def secondary_button(label: str, *, fill: bool = False) -> Gtk.Button:
     button = Gtk.Button(label=label)
     button.add_css_class("couch-button")
+    if fill:
+        button.set_hexpand(True)
+        button.set_halign(Gtk.Align.FILL)
     return button
 
 

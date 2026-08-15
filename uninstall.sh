@@ -24,6 +24,7 @@ elif [[ -e /etc/udev/rules.d/99-htpc-control-center-controller-wake.rules ]]; th
 fi
 
 rm -f "$HOME/.local/bin/htpc-control-center"
+rm -f "$HOME/.local/bin/htpc-control-center-uninstall"
 rm -f "$DATA_HOME/applications/$APP_ID.desktop"
 rm -f "$DATA_HOME/metainfo/$APP_ID.metainfo.xml"
 rm -rf "$APP_HOME"

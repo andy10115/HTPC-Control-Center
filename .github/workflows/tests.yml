@@ -26,3 +26,20 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Shell syntax
         run: bash -n bootstrap.sh install.sh uninstall.sh
+
+  gtk-navigation-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK test runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-gi \
+            gir1.2-gtk-4.0 \
+            gir1.2-adw-1 \
+            xvfb
+      - name: Click dashboard navigation actions
+        env:
+          PYTHONPATH: src
+        run: xvfb-run -a python3 tests/ui_smoke.py
