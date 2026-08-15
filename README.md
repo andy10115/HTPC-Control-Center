@@ -10,6 +10,12 @@ The initial release combines the proven pieces of two earlier proof-of-concept p
 
 > **Alpha software:** test TV wake/sleep, input switching, suspend, and controller wake on your own hardware before relying on them.
 
+<p align="center">
+  <img src="images/home%20preconfig.png" alt="HTPC Control Center before TV or controller wake is configured" width="900">
+</p>
+
+<p align="center"><em>The first-run dashboard keeps TV setup and controller wake separate while surfacing the prerequisites both features share.</em></p>
+
 ## v1 scope
 
 ### TV operating systems
@@ -118,6 +124,8 @@ Launch **HTPC Control Center** from the application menu or run:
 htpc-control-center
 ```
 
+On first launch, both feature cards show **Not configured**. Start either flow independently; configuring one does not require configuring the other.
+
 ## Uninstall
 
 Every normal install also installs an uninstaller, so you do **not** need to keep the repository checkout. Remove HTPC Control Center with:
@@ -223,6 +231,14 @@ The app will:
 
 When the TV first asks whether to allow debugging, choose **Always allow from this computer** before accepting it.
 
+### Power testing during setup
+
+Before saving lifecycle automation, the wizard lets you test both sleep and wake directly. These tests are optional; a failed test does not discard the ADB setup you have already completed.
+
+<p align="center">
+  <img src="images/TV-Onbard.png" alt="Android TV power test screen in HTPC Control Center" width="900">
+</p>
+
 ## TV behaviors retained from ATV-Couch-Wake
 
 The setup page exposes:
@@ -239,6 +255,13 @@ Startup/resume handling does not rely on a single blind delay. The watcher gives
 ## Direct TV input selection
 
 The Android backend discovers physical passthrough IDs instead of assuming that a specific hardware number equals a specific HDMI port.
+
+
+<p align="center">
+  <img src="images/input-check.png" alt="Physical Android TV input selection screen" width="900">
+</p>
+
+The setup flow presents the discovered physical inputs as testable candidates. Test them until the gaming PC appears, then save that input for automatic selection after wake.
 
 For example, a vendor can expose an input ID similar to:
 
@@ -284,6 +307,13 @@ Choose **Set Up Controller Wake** from the main page.
 11. Click **Apply Controller Wake** and approve the Polkit prompt.
 
 Two identical receivers can be configured independently when they occupy different physical USB paths. Duplicate wake targets shared by multiple selected controllers are written only once.
+
+
+<p align="center">
+  <img src="images/Controller%20Onboard.png" alt="Controller receiver selection screen in HTPC Control Center" width="900">
+</p>
+
+<p align="center"><em>Receiver selection is graphical; HTPC Control Center resolves the selected devices to their real wake-capable USB ancestry before anything privileged is written.</em></p>
 
 ## Why topology-based rules
 
@@ -348,6 +378,12 @@ Removing controller wake from the GUI removes the rule, target list, suspend dro
 # Main screen status and controls
 
 Once configured, the home screen exposes quick actions instead of forcing users back through setup:
+
+<p align="center">
+  <img src="images/Home%20Screen.png" alt="HTPC Control Center configured home screen" width="900">
+</p>
+
+The dashboard keeps the two features independent: TV status and controls stay on the left, while controller wake status and controls stay on the right.
 
 ### TV Control
 
