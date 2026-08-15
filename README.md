@@ -10,6 +10,10 @@ The initial release combines the proven pieces of two earlier proof-of-concept p
 
 > **Alpha software:** test TV wake/sleep, input switching, suspend, and controller wake on your own hardware before relying on them.
 
+![HTPC Control Center configured dashboard](images/Home%20Screen.png)
+
+*The main dashboard after TV Control and Controller Wake have been configured.*
+
 ## v1 scope
 
 ### TV operating systems
@@ -118,6 +122,14 @@ Launch **HTPC Control Center** from the application menu or run:
 htpc-control-center
 ```
 
+### First launch
+
+Before anything is configured, the dashboard keeps TV setup and controller wake separate and surfaces only the prerequisites needed to get started.
+
+![HTPC Control Center before configuration](images/home%20preconfig.png)
+
+*Fresh-install dashboard with separate TV and controller setup paths.*
+
 ## Uninstall
 
 Every normal install also installs an uninstaller, so you do **not** need to keep the repository checkout. Remove HTPC Control Center with:
@@ -223,6 +235,14 @@ The app will:
 
 When the TV first asks whether to allow debugging, choose **Always allow from this computer** before accepting it.
 
+### Test TV power
+
+The setup flow includes optional sleep/wake checks before moving on to input selection. A failed test does not discard a working ADB pairing, so you can continue troubleshooting without starting over.
+
+![Android TV power test during setup](images/TV-Onbard.png)
+
+*Optional TV sleep and wake tests inside the Android / Google TV setup flow.*
+
 ## TV behaviors retained from ATV-Couch-Wake
 
 The setup page exposes:
@@ -247,6 +267,10 @@ com.vendor.tvinput/.TvPassThroughService/HW15
 ```
 
 HTPC Control Center converts the selected ID to Android's passthrough URI and launches it directly. The GUI asks the user to test candidates because mappings are vendor/firmware-specific.
+
+![Android TV physical input selection](images/input-check.png)
+
+*Physical passthrough inputs discovered from the TV. Test candidates until the gaming PC appears, then save that input.*
 
 ## TV lifecycle service
 
@@ -284,6 +308,10 @@ Choose **Set Up Controller Wake** from the main page.
 11. Click **Apply Controller Wake** and approve the Polkit prompt.
 
 Two identical receivers can be configured independently when they occupy different physical USB paths. Duplicate wake targets shared by multiple selected controllers are written only once.
+
+![Controller receiver selection](images/Controller%20Onboard.png)
+
+*Controller setup exposes the actual USB path and wake-capable ancestry before anything is applied.*
 
 ## Why topology-based rules
 
