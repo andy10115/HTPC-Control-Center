@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "htpc-control-center"
-version = "0.3.2"
+version = "0.3.3"
 description = "GTK4/libadwaita control center for Linux HTPC TV automation and controller wake"
 readme = "README.md"
 requires-python = ">=3.10"

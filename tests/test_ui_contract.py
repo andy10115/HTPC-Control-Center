@@ -29,6 +29,14 @@ class UIContractSourceTests(unittest.TestCase):
         self.assertIn('"Choose a TV operating system"', source)
         self.assertIn('primary_button("Set Up Android / Google TV", fill=True)', source)
 
+
+    def test_shared_page_shell_expands_inside_subpage_wrappers(self) -> None:
+        source = (ROOT / "src/htpc_control_center/ui/common.py").read_text(encoding="utf-8")
+        self.assertIn("toolbar.set_hexpand(True)", source)
+        self.assertIn("toolbar.set_vexpand(True)", source)
+        self.assertIn("scroller.set_hexpand(True)", source)
+        self.assertIn("scroller.set_vexpand(True)", source)
+
     def test_preferences_has_update_toggle(self) -> None:
         source = (ROOT / "src/htpc_control_center/ui/preferences.py").read_text(encoding="utf-8")
         self.assertIn('Adw.SwitchRow()', source)

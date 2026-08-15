@@ -40,6 +40,12 @@ def page_shell(
     maximum_size: int = 1120,
 ) -> tuple[Gtk.Widget, Gtk.Box, Adw.HeaderBar]:
     toolbar = Adw.ToolbarView()
+    # Sub-pages wrap ToolbarView inside a Gtk.Box. Without expand flags GTK
+    # allocates only the toolbar's natural height, leaving the rest of the
+    # page content clipped below the visible window. Keep the shell expanding
+    # wherever it is used, including direct dashboard content.
+    toolbar.set_hexpand(True)
+    toolbar.set_vexpand(True)
     header = Adw.HeaderBar()
     title_widget = Adw.WindowTitle()
     title_widget.set_title(title)
@@ -53,6 +59,8 @@ def page_shell(
     toolbar.add_top_bar(header)
 
     scroller = Gtk.ScrolledWindow()
+    scroller.set_hexpand(True)
+    scroller.set_vexpand(True)
     scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
     clamp = Adw.Clamp()
     clamp.set_maximum_size(maximum_size)
