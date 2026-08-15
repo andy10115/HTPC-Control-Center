@@ -19,7 +19,7 @@ from ..tv.android import (
     set_tv_endpoint,
 )
 from ..tv.systemd import install_user_service
-from .common import action_row, button_row, heading, page_shell, run_background, show_message
+from .common import action_row, button_row, heading, page_shell, primary_button, run_background, secondary_button, show_message
 
 README_URL = "https://github.com/andy10115/HTPC-Control-Center#android-tv--google-tv-setup"
 
@@ -47,12 +47,11 @@ class TVSetupView(Gtk.Box):
     def footer(self, back_cb=None, next_cb=None, next_label="Continue") -> None:
         buttons: list[Gtk.Button] = []
         if back_cb is not None:
-            back = Gtk.Button(label="Back")
+            back = secondary_button("Back")
             back.connect("clicked", lambda *_: back_cb())
             buttons.append(back)
         if next_cb is not None:
-            nxt = Gtk.Button(label=next_label)
-            nxt.add_css_class("suggested-action")
+            nxt = primary_button(next_label)
             nxt.connect("clicked", lambda *_: next_cb())
             buttons.append(nxt)
         self.content.append(button_row(*buttons))
@@ -71,8 +70,7 @@ class TVSetupView(Gtk.Box):
             "Android TV / Google TV",
             "Supported — uses ADB over your local network for power and physical input selection.",
         )
-        use = Gtk.Button(label="Use Android / Google TV")
-        use.add_css_class("suggested-action")
+        use = primary_button("Use Android / Google TV")
         use.connect("clicked", lambda *_: self.render_prereqs())
         android.add_suffix(use)
         group.add(android)
@@ -124,7 +122,7 @@ class TVSetupView(Gtk.Box):
             self.footer(self.render_provider, self.render_connection)
         except ADBNotInstalled:
             missing = action_row("ADB is required", "Install Android platform tools, then return to this page.")
-            install_help = Gtk.Button(label="Show Install Help")
+            install_help = secondary_button("Show Install Help")
             install_help.connect("clicked", lambda *_: show_message(self.window, "Install Android platform tools", installation_help()))
             missing.add_suffix(install_help)
             group.add(missing)
@@ -152,7 +150,7 @@ class TVSetupView(Gtk.Box):
         self.manual_entry.set_text(self.config.tv.serial or self.config.tv.host)
         self.manual_entry.set_width_chars(24)
         row.add_suffix(self.manual_entry)
-        use_manual = Gtk.Button(label="Use Address")
+        use_manual = primary_button("Use Address")
         use_manual.connect("clicked", self._use_manual_address)
         row.add_suffix(use_manual)
         manual_group.add(row)
@@ -174,7 +172,7 @@ class TVSetupView(Gtk.Box):
         self.discovery_status_row.set_subtitle("Choose the TV you want to configure, or use the manual address field below.")
         for target in targets:
             row = action_row(target.label, f"Found through {target.source}")
-            use = Gtk.Button(label="Use This TV")
+            use = primary_button("Use This TV")
             use.connect("clicked", lambda _button, address=target.address: self._select_address(address))
             row.add_suffix(use)
             self.discovery_group.add(row)
@@ -210,8 +208,7 @@ class TVSetupView(Gtk.Box):
                 "For most TVs, just click Connect & Authorize. HTPC Control Center will wait up to one minute for the TV prompt.",
             )
         )
-        self.connect_button = Gtk.Button(label="Connect & Authorize")
-        self.connect_button.add_css_class("suggested-action")
+        self.connect_button = primary_button("Connect & Authorize")
         self.connect_button.connect("clicked", self._authorize)
         connect_row = action_row("Authorize ADB", "The TV should display a confirmation prompt on first connection.")
         connect_row.add_suffix(self.connect_button)
@@ -231,7 +228,7 @@ class TVSetupView(Gtk.Box):
         self.pair_code.set_max_length(6)
         self.pair_code.set_input_purpose(Gtk.InputPurpose.DIGITS)
         code_row.add_suffix(self.pair_code)
-        pair = Gtk.Button(label="Pair")
+        pair = secondary_button("Pair")
         pair.connect("clicked", self._pair)
         code_row.add_suffix(pair)
         pairing.add(code_row)
@@ -300,11 +297,11 @@ class TVSetupView(Gtk.Box):
         group = Adw.PreferencesGroup()
         group.set_title("Power control")
         sleep_row = action_row("Sleep TV", "Sends Android KEYCODE_SLEEP.")
-        sleep_btn = Gtk.Button(label="Test Sleep")
+        sleep_btn = secondary_button("Test Sleep")
         sleep_row.add_suffix(sleep_btn)
         group.add(sleep_row)
         wake_row = action_row("Wake TV", "Sends Android KEYCODE_WAKEUP with retry and verification logic.")
-        wake_btn = Gtk.Button(label="Test Wake")
+        wake_btn = secondary_button("Test Wake")
         wake_row.add_suffix(wake_btn)
         group.add(wake_row)
         self.content.append(group)
@@ -334,7 +331,7 @@ class TVSetupView(Gtk.Box):
         self.input_status_row = action_row("Discovering inputs…", "Keep the TV on while this runs.")
         self.input_group.add(self.input_status_row)
         self.content.append(self.input_group)
-        skip = Gtk.Button(label="Skip Input Switching")
+        skip = secondary_button("Skip Input Switching")
         skip.connect("clicked", lambda *_: self._skip_input())
         self.content.append(button_row(skip))
         self.footer(self.render_power_test, None)
@@ -354,8 +351,8 @@ class TVSetupView(Gtk.Box):
         self.input_status_row.set_subtitle("Test candidates until the gaming PC appears, then choose Use This Input.")
         for candidate in inputs:
             row = action_row(candidate.display_name, candidate.input_id)
-            test = Gtk.Button(label="Test")
-            use = Gtk.Button(label="Use This Input")
+            test = secondary_button("Test")
+            use = primary_button("Use This Input")
             use.add_css_class("suggested-action")
             test.connect("clicked", lambda _b, item=candidate: self._test_input(item))
             use.connect("clicked", lambda _b, item=candidate: self._use_input(item))

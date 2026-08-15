@@ -7,7 +7,7 @@ from gi.repository import Adw, Gtk
 
 from ..controller.discovery import ControllerDiscoveryError, USBDevice, list_usb_devices
 from ..controller import manager
-from .common import action_row, button_row, confirm, heading, page_shell, run_background, show_message
+from .common import action_row, button_row, confirm, heading, page_shell, primary_button, run_background, secondary_button, show_message
 
 README_URL = "https://github.com/andy10115/HTPC-Control-Center#controller-wake-setup"
 
@@ -34,12 +34,11 @@ class ControllerSetupView(Gtk.Box):
     def footer(self, back_cb=None, next_cb=None, next_label="Continue") -> None:
         buttons: list[Gtk.Button] = []
         if back_cb is not None:
-            back = Gtk.Button(label="Back")
+            back = secondary_button("Back")
             back.connect("clicked", lambda *_: back_cb())
             buttons.append(back)
         if next_cb is not None:
-            nxt = Gtk.Button(label=next_label)
-            nxt.add_css_class("suggested-action")
+            nxt = primary_button(next_label)
             nxt.connect("clicked", lambda *_: next_cb())
             buttons.append(nxt)
         self.content.append(button_row(*buttons))
@@ -93,7 +92,7 @@ class ControllerSetupView(Gtk.Box):
         if not devices:
             self.scan_status_row.set_title("No USB devices found")
             self.scan_status_row.set_subtitle("Connect the receiver/dongle and scan again.")
-            retry = Gtk.Button(label="Scan Again")
+            retry = secondary_button("Scan Again")
             retry.connect("clicked", lambda *_: self.render_scan())
             self.content.append(button_row(retry))
             return
@@ -118,17 +117,16 @@ class ControllerSetupView(Gtk.Box):
             row.set_activatable_widget(check)
             self.device_group.add(row)
             self.checks.append((device, check))
-        choose = Gtk.Button(label="Continue with Selected Devices")
-        choose.add_css_class("suggested-action")
+        choose = primary_button("Continue with Selected Devices")
         choose.connect("clicked", lambda *_: self._review_selection())
-        scan = Gtk.Button(label="Scan Again")
+        scan = secondary_button("Scan Again")
         scan.connect("clicked", lambda *_: self.render_scan())
         self.content.append(button_row(scan, choose))
 
     def _show_scan_error(self, exc: BaseException) -> None:
         self.scan_status_row.set_title("USB scan failed")
         self.scan_status_row.set_subtitle(str(exc))
-        retry = Gtk.Button(label="Scan Again")
+        retry = secondary_button("Scan Again")
         retry.connect("clicked", lambda *_: self.render_scan())
         self.content.append(button_row(retry))
 

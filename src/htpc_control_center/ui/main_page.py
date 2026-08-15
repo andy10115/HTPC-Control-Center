@@ -12,7 +12,18 @@ from ..legacy import detect_legacy_projects
 from ..updates import UpdateInfo
 from ..tv.providers import create_controller
 from ..tv.systemd import remove_user_service, service_status
-from .common import action_row, confirm, heading, page_shell, run_background, show_message, status_label
+from .common import (
+    action_row,
+    confirm,
+    emphasized_link_button,
+    heading,
+    page_shell,
+    primary_button,
+    run_background,
+    secondary_button,
+    show_message,
+    status_label,
+)
 
 README_URL = "https://github.com/andy10115/HTPC-Control-Center#readme"
 
@@ -27,8 +38,9 @@ def build_main_page(
     update_info: UpdateInfo | None = None,
     on_update: Callable[[UpdateInfo], None] | None = None,
 ) -> Gtk.Widget:
-    page, content, header = page_shell("HTPC Control Center")
-    preferences = Gtk.Button(label="Preferences")
+    page, content, header = page_shell("HTPC Control Center", maximum_size=1220)
+    preferences = secondary_button("Preferences")
+    preferences.set_tooltip_text("Preferences and update settings")
     preferences.connect("clicked", lambda *_: on_preferences())
     header.pack_end(preferences)
 
@@ -38,10 +50,12 @@ def build_main_page(
         banner.set_revealed(True)
         banner.connect("button-clicked", lambda *_: on_update(update_info))
         content.append(banner)
+
     content.append(
         heading(
             "HTPC Control Center",
             "Set up console-like TV behavior and controller wake without living in the terminal.",
+            level=1,
         )
     )
 
@@ -68,14 +82,29 @@ def build_main_page(
         )
     )
     readme_row = action_row("Setup guide", "The README has preparation steps, dependency notes, and troubleshooting.")
-    readme_button = Gtk.LinkButton(uri=README_URL, label="Read README")
-    readme_row.add_suffix(readme_button)
+    readme_row.add_suffix(emphasized_link_button("Read README", README_URL))
     tips.add(readme_row)
     content.append(tips)
 
+    columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=24)
+    columns.set_homogeneous(True)
+    columns.set_valign(Gtk.Align.START)
+
+    tv_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+    controller_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+    columns.append(tv_column)
+    columns.append(controller_column)
+
     config = load_config(required=False)
+
+    tv_column.append(
+        heading(
+            "TV Control",
+            "Configure Android TV / Google TV wake, sleep, input selection, and lifecycle automation.",
+            level=2,
+        )
+    )
     tv_group = Adw.PreferencesGroup()
-    tv_group.set_title("TV Control")
     if config.tv_configured:
         svc = service_status()
         detail = f"{config.tv.name or config.tv.model or 'Android / Google TV'} • {config.tv.serial}"
@@ -86,11 +115,11 @@ def build_main_page(
         tv_group.add(row)
 
         actions = action_row("Actions", "Test commands immediately or rerun setup to change the TV, input, or automation behavior.")
-        wake = Gtk.Button(label="Wake")
-        sleep = Gtk.Button(label="Sleep")
-        select_input = Gtk.Button(label="Select Input")
-        settings = Gtk.Button(label="Settings")
-        remove = Gtk.Button(label="Remove")
+        wake = secondary_button("Wake")
+        sleep = secondary_button("Sleep")
+        select_input = secondary_button("Select Input")
+        settings = secondary_button("Settings")
+        remove = secondary_button("Remove")
         remove.add_css_class("destructive-action")
         select_input.set_sensitive(bool(config.tv.input_uri))
 
@@ -144,15 +173,36 @@ def build_main_page(
         tv_group.add(actions)
     else:
         row = action_row("Not configured", "Android TV / Google TV is the supported TV backend in the initial release.")
-        setup = Gtk.Button(label="Set Up My TV")
-        setup.add_css_class("suggested-action")
+        setup = primary_button("Set Up My TV")
         setup.connect("clicked", lambda *_: on_tv_setup())
         row.add_suffix(setup)
         tv_group.add(row)
-    content.append(tv_group)
+    tv_column.append(tv_group)
 
+    contribution = Adw.PreferencesGroup()
+    contribution.set_title("TV platform support")
+    contribution.add(
+        action_row(
+            "Android TV / Google TV",
+            "Supported in v1 through ADB for wake, sleep, and direct physical-input selection.",
+        )
+    )
+    contribution.add(
+        action_row(
+            "Other TV operating systems",
+            "Contributors needed. New TV providers should remain independent from the controller-wake backend.",
+        )
+    )
+    tv_column.append(contribution)
+
+    controller_column.append(
+        heading(
+            "Controller Wake",
+            "Trace one or more USB controller receivers and arm only the wake-capable USB path Linux actually needs.",
+            level=2,
+        )
+    )
     controller_group = Adw.PreferencesGroup()
-    controller_group.set_title("Controller Wake")
     cstatus = controller_manager.status()
     if cstatus.configured:
         device_names = ", ".join(item.name for item in cstatus.devices) or "Configured USB wake path"
@@ -168,9 +218,9 @@ def build_main_page(
             "Actions",
             "The suspend test will put this PC to sleep. Make sure another wake method is available before testing.",
         )
-        test = Gtk.Button(label="Suspend Test")
-        settings = Gtk.Button(label="Settings")
-        remove = Gtk.Button(label="Remove")
+        test = secondary_button("Suspend Test")
+        settings = secondary_button("Settings")
+        remove = secondary_button("Remove")
         remove.add_css_class("destructive-action")
         settings.connect("clicked", lambda *_: on_controller_setup())
 
@@ -219,26 +269,27 @@ def build_main_page(
             "Not configured",
             "Select one or more USB controller receivers and HTPC Control Center will trace their actual wake-capable USB path.",
         )
-        setup = Gtk.Button(label="Set Up Controller Wake")
-        setup.add_css_class("suggested-action")
+        setup = primary_button("Set Up Controller Wake")
         setup.connect("clicked", lambda *_: on_controller_setup())
         row.add_suffix(setup)
         controller_group.add(row)
-    content.append(controller_group)
+    controller_column.append(controller_group)
 
-    contribution = Adw.PreferencesGroup()
-    contribution.set_title("TV platform support")
-    contribution.add(
+    controller_info = Adw.PreferencesGroup()
+    controller_info.set_title("Controller wake notes")
+    controller_info.add(
         action_row(
-            "Android TV / Google TV",
-            "Supported in v1 through ADB for wake, sleep, and direct physical-input selection.",
+            "USB receiver / dongle required",
+            "Bluetooth-only controller wake is not configured here. Firmware and motherboard wake support still matter.",
         )
     )
-    contribution.add(
+    controller_info.add(
         action_row(
-            "Other TV operating systems",
-            "Contributors needed. New TV providers should remain independent from the controller-wake backend.",
+            "5-second quiet window",
+            "Immediately before suspend, only the configured wake nodes are temporarily disarmed so controller power-off chatter cannot bounce the PC awake.",
         )
     )
-    content.append(contribution)
+    controller_column.append(controller_info)
+
+    content.append(columns)
     return page

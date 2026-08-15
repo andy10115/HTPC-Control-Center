@@ -21,8 +21,8 @@ class MainWindow(Adw.ApplicationWindow):
     def __init__(self, application: Adw.Application) -> None:
         super().__init__(application=application)
         self.set_title("HTPC Control Center")
-        self.set_default_size(900, 760)
-        self.set_size_request(650, 520)
+        self.set_default_size(1220, 840)
+        self.set_size_request(820, 620)
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         self.stack.set_transition_duration(180)

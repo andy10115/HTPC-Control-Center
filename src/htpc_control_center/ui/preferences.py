@@ -7,9 +7,23 @@ from gi.repository import Adw, Gtk
 
 from .. import __version__
 from .. import updates
-from .common import action_row, page_shell, run_background, show_message
+from ..config import load_config
+from ..controller import manager
+from ..tv.systemd import service_status
+from .common import (
+    action_row,
+    emphasized_link_button,
+    heading,
+    page_shell,
+    primary_button,
+    run_background,
+    secondary_button,
+    show_message,
+    status_label,
+)
 
 RELEASES_URL = "https://github.com/andy10115/HTPC-Control-Center/releases"
+README_URL = "https://github.com/andy10115/HTPC-Control-Center#readme"
 
 
 class PreferencesView(Gtk.Box):
@@ -26,8 +40,15 @@ class PreferencesView(Gtk.Box):
         self._build()
 
     def _build(self) -> None:
-        page, content, _header = page_shell("Preferences", lambda *_: self.on_back())
+        page, content, _header = page_shell("Preferences", lambda *_: self.on_back(), maximum_size=1220)
         self.append(page)
+        content.append(
+            heading(
+                "Preferences",
+                "Adjust update behavior and review the current TV and controller configuration state.",
+                level=1,
+            )
+        )
 
         preferences = updates.load_preferences()
         updates_group = Adw.PreferencesGroup()
@@ -48,23 +69,74 @@ class PreferencesView(Gtk.Box):
         updates_group.add(automatic)
 
         self.status_row = action_row("Release status", self._status_text(updates.cached_available_update()))
-        self.check_button = Gtk.Button(label="Check Now")
+        self.check_button = secondary_button("Check Now")
         self.check_button.connect("clicked", self._check_now)
         self.status_row.add_suffix(self.check_button)
         updates_group.add(self.status_row)
 
         self.update_row = action_row("Available update", "")
-        self.update_button = Gtk.Button(label="Install Update")
-        self.update_button.add_css_class("suggested-action")
+        self.update_button = primary_button("Install Update")
         self.update_button.connect("clicked", self._install_update)
         self.update_row.add_suffix(self.update_button)
         updates_group.add(self.update_row)
         self._refresh_update_row(updates.cached_available_update())
 
         releases = action_row("GitHub Releases", "Stable releases are the only update channel used by the application.")
-        releases.add_suffix(Gtk.LinkButton(uri=RELEASES_URL, label="Open Releases"))
+        releases.add_suffix(emphasized_link_button("Open Releases", RELEASES_URL))
         updates_group.add(releases)
         content.append(updates_group)
+
+        columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=24)
+        columns.set_homogeneous(True)
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        columns.append(left)
+        columns.append(right)
+
+        config = load_config(required=False)
+        tv_status = service_status() if config.tv_configured else None
+        left.append(heading("TV", "Current TV-control state and shortcuts.", level=2))
+        tv_group = Adw.PreferencesGroup()
+        if config.tv_configured:
+            name = config.tv.name or config.tv.model or "Android / Google TV"
+            detail = f"{name} • {config.tv.serial}"
+            if config.tv.input_label:
+                detail += f" • input: {config.tv.input_label}"
+            row = action_row("Configured TV", detail)
+            row.add_suffix(status_label("Watcher running" if tv_status and tv_status.active else "Watcher stopped", "success" if tv_status and tv_status.active else "warning"))
+            tv_group.add(row)
+            behavior = []
+            if config.tv.wake_enabled:
+                behavior.append("wake")
+            if config.tv.sleep_on_suspend:
+                behavior.append("sleep on suspend")
+            if config.tv.shutdown_sleep:
+                behavior.append("sleep on shutdown")
+            if config.tv.select_input_on_wake and config.tv.input_label:
+                behavior.append("select input on wake")
+            tv_group.add(action_row("Enabled actions", ", ".join(behavior) if behavior else "No lifecycle actions are currently enabled."))
+        else:
+            tv_group.add(action_row("Not configured", "Android TV / Google TV is the supported backend in the initial release."))
+        tv_docs = action_row("Setup guide", "Review Android / Google TV preparation steps and troubleshooting.")
+        tv_docs.add_suffix(emphasized_link_button("Open Guide", README_URL))
+        tv_group.add(tv_docs)
+        left.append(tv_group)
+
+        right.append(heading("Controller Wake", "Current controller-wake state and reminders.", level=2))
+        controller_group = Adw.PreferencesGroup()
+        cstatus = manager.status()
+        if cstatus.configured:
+            devices = ", ".join(item.name for item in cstatus.devices) or "Configured USB wake path"
+            row = action_row("Configured receivers", devices)
+            row.add_suffix(status_label("Wake paths armed" if cstatus.all_targets_enabled else "Check wake paths", "success" if cstatus.all_targets_enabled else "warning"))
+            controller_group.add(row)
+            controller_group.add(action_row("Guard behavior", "Configured wake nodes are disarmed for 5 seconds immediately before suspend, then re-armed."))
+        else:
+            controller_group.add(action_row("Not configured", "Choose one or more USB controller receivers and HTPC Control Center will trace their real wake-capable USB path."))
+        controller_group.add(action_row("Hardware reminder", "Motherboard firmware still needs USB wake support enabled. Bluetooth-only controller wake is not configured here."))
+        right.append(controller_group)
+
+        content.append(columns)
 
         about_group = Adw.PreferencesGroup()
         about_group.set_title("About")
