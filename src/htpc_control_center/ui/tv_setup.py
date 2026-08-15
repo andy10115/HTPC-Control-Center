@@ -311,8 +311,8 @@ class TVSetupView(Gtk.Box):
         self.content.append(
             heading(
                 "Test TV power",
-                "Keep the physical remote nearby. These tests are optional and a failed test does not discard the ADB setup."
-                "TIP: For Test Wake, place mouse over Test Wake button, and turn your tv off before testing.",
+                "Keep the physical remote nearby. These tests are optional and a failed test does not discard the ADB setup.",
+                "For Test Wake, move the pointer over the Test Wake button, turn the TV off, then click Test Wake.",
             )
         )
         group = Adw.PreferencesGroup()
@@ -346,7 +346,7 @@ class TVSetupView(Gtk.Box):
             heading(
                 "Choose the PC's TV input",
                 "Android's TV Input Framework exposes vendor-specific physical inputs. Test candidates instead of assuming an HW number maps to a particular HDMI port.",
-                "TIP: Place mouse over test button and change away from this input before testing.",
+                "Move the pointer over a Test button, switch the TV away from the PC input, then click Test to confirm that candidate returns to the PC.",
             )
         )
         self.input_group = Adw.PreferencesGroup()

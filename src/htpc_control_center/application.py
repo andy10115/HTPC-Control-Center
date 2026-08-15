@@ -31,6 +31,12 @@ APP_CSS = b"""
   opacity: 0.88;
 }
 
+.tip-label {
+  font-size: 0.98rem;
+  font-weight: 650;
+  opacity: 0.9;
+}
+
 .couch-row {
   padding-top: 4px;
   padding-bottom: 4px;

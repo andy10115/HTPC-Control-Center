@@ -4,6 +4,7 @@ import io
 import tarfile
 import tempfile
 import unittest
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -26,6 +27,20 @@ def make_paths(root: Path) -> AppPaths:
 
 
 class UpdateTests(unittest.TestCase):
+    def test_package_versions_match(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        project_text = (root / "pyproject.toml").read_text(encoding="utf-8")
+        match = re.search(r'^version\s*=\s*"([^"]+)"', project_text, flags=re.MULTILINE)
+        self.assertIsNotNone(match)
+        from htpc_control_center import __version__
+        assert match is not None
+        self.assertEqual(match.group(1), __version__)
+        metainfo = (root / "data/io.github.andy10115.HTPCControlCenter.metainfo.xml").read_text(encoding="utf-8")
+        release = re.search(r'<release version="([^"]+)"', metainfo)
+        self.assertIsNotNone(release)
+        assert release is not None
+        self.assertEqual(release.group(1), __version__)
+
     def test_version_comparison(self) -> None:
         self.assertTrue(updates.is_newer_version("0.2.1", "0.2.0"))
         self.assertTrue(updates.is_newer_version("v1.0.0", "0.9.9"))

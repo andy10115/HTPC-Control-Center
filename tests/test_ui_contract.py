@@ -69,6 +69,17 @@ class UIContractSourceTests(unittest.TestCase):
         self.assertIn('/home/linuxbrew/.linuxbrew/bin/brew', backend)
         self.assertIn('brew install android-platform-tools', backend)
 
+
+    def test_tv_tips_use_separate_heading_tip_line(self) -> None:
+        source = (ROOT / "src/htpc_control_center/ui/tv_setup.py").read_text(encoding="utf-8")
+        common = (ROOT / "src/htpc_control_center/ui/common.py").read_text(encoding="utf-8")
+        self.assertIn('tip: str = ""', common)
+        self.assertIn('label=f"TIP: {tip}"', common)
+        self.assertNotIn('"TIP: For Test Wake', source)
+        self.assertNotIn('"TIP: Place mouse', source)
+        self.assertIn('"For Test Wake, move the pointer', source)
+        self.assertIn('"Move the pointer over a Test button', source)
+
     def test_application_icons_are_shipped(self) -> None:
         icons = ROOT / "data/icons"
         stem = "io.github.andy10115.HTPCControlCenter"

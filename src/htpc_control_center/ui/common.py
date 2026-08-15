@@ -77,7 +77,7 @@ def page_shell(
     return toolbar, content, header, back
 
 
-def heading(text: str, subtitle: str = "", *, level: int = 1) -> Gtk.Box:
+def heading(text: str, subtitle: str = "", tip: str = "", *, level: int = 1) -> Gtk.Box:
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
     label = Gtk.Label(label=text, xalign=0)
     label.set_wrap(True)
@@ -88,6 +88,11 @@ def heading(text: str, subtitle: str = "", *, level: int = 1) -> Gtk.Box:
         sub.add_css_class("hero-subtitle" if level == 1 else "section-subtitle")
         sub.set_wrap(True)
         box.append(sub)
+    if tip:
+        tip_label = Gtk.Label(label=f"TIP: {tip}", xalign=0)
+        tip_label.add_css_class("tip-label")
+        tip_label.set_wrap(True)
+        box.append(tip_label)
     return box
 
 

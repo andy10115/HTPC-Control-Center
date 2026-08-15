@@ -13,6 +13,8 @@
   <url type="homepage">https://github.com/andy10115/HTPC-Control-Center</url>
   <developer id="io.github.andy10115"><name>Andy East</name></developer>
   <releases>
+    <release version="0.3.6" date="2026-08-15"/>
+    <release version="0.3.5" date="2026-08-15"/>
     <release version="0.3.4" date="2026-08-14"/>
     <release version="0.3.3" date="2026-08-14"/>
     <release version="0.3.2" date="2026-08-14"/>
