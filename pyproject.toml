@@ -1,7 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
-
 [project]
 name = "htpc-control-center"
 version = "0.3.6"
@@ -11,7 +10,7 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Andy East"}]
 dependencies = [
-  "dbus-next>=0.2.3",
+  "dbus-fast>=2.0",
   "tomli>=2.0; python_version < '3.11'",
 ]
 classifiers = [
@@ -21,7 +20,6 @@ classifiers = [
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
 ]
-
 [project.urls]
 Homepage = "https://github.com/andy10115/HTPC-Control-Center"
 Issues = "https://github.com/andy10115/HTPC-Control-Center/issues"
