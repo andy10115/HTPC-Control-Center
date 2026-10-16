@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 APP_NAME="HTPC Control Center"
 PACKAGE_NAME="htpc-control-center"
 APP_ID="io.github.andy10115.HTPCControlCenter"
@@ -14,7 +13,6 @@ DESKTOP_DIR="$DATA_HOME/applications"
 METAINFO_DIR="$DATA_HOME/metainfo"
 ICON_SCALABLE_DIR="$DATA_HOME/icons/hicolor/scalable/apps"
 ICON_256_DIR="$DATA_HOME/icons/hicolor/256x256/apps"
-
 fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 
 command -v "$PYTHON" >/dev/null 2>&1 || fail "python3 is required."
@@ -22,7 +20,6 @@ command -v "$PYTHON" >/dev/null 2>&1 || fail "python3 is required."
 import sys
 raise SystemExit(0 if sys.version_info >= (3, 10) else 1)
 PY
-
 if ! "$PYTHON" - <<'PY' >/dev/null 2>&1
 import gi
 gi.require_version("Gtk", "4.0")
@@ -34,7 +31,6 @@ PY
 then
     cat >&2 <<'MSG'
 GTK4/libadwaita Python bindings were not found, or libadwaita is older than 1.4.
-
 Install your distribution's native GTK4 + libadwaita + PyGObject packages, then run this installer again.
 Typical package names include:
   Fedora/Bazzite: python3-gobject gtk4 libadwaita
@@ -45,21 +41,28 @@ HTPC Control Center deliberately does not install or layer system packages itsel
 MSG
     exit 1
 fi
-
 mkdir -p "$APP_HOME" "$BIN_DIR" "$DESKTOP_DIR" "$METAINFO_DIR" "$ICON_SCALABLE_DIR" "$ICON_256_DIR"
 if [[ ! -f "$DATA_HOME/icons/hicolor/index.theme" && -f /usr/share/icons/hicolor/index.theme ]]; then
     cp /usr/share/icons/hicolor/index.theme "$DATA_HOME/icons/hicolor/index.theme"
 fi
 
-if [[ ! -x "$VENV/bin/python" ]]; then
+# A venv keeps the interpreter it was created with. Fedora image upgrades can
+# replace system Python, leaving an otherwise present venv pointing at an older
+# interpreter and unable to access the new system site-packages (e.g. PyGObject).
+SYSTEM_PYTHON_VERSION="$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+VENV_PYTHON_VERSION=""
+if [[ -f "$VENV/pyvenv.cfg" ]]; then
+    VENV_PYTHON_VERSION="$(sed -n 's/^version = \([0-9]*\.[0-9]*\).*/\1/p' "$VENV/pyvenv.cfg" | head -n 1)"
+fi
+if [[ ! -x "$VENV/bin/python" || "$VENV_PYTHON_VERSION" != "$SYSTEM_PYTHON_VERSION" ]]; then
+    echo "Creating HTPC Control Center virtual environment for Python $SYSTEM_PYTHON_VERSION"
+    rm -rf "$VENV"
     "$PYTHON" -m venv --system-site-packages "$VENV"
 fi
-
 "$VENV/bin/python" -m pip install --disable-pip-version-check --upgrade "$SCRIPT_DIR"
 ln -sfn "$VENV/bin/htpc-control-center" "$BIN_DIR/htpc-control-center"
 install -m 0755 "$SCRIPT_DIR/uninstall.sh" "$APP_HOME/uninstall.sh"
 ln -sfn "$APP_HOME/uninstall.sh" "$BIN_DIR/htpc-control-center-uninstall"
-
 "$PYTHON" - "$SCRIPT_DIR/data/$APP_ID.desktop.in" "$DESKTOP_DIR/$APP_ID.desktop" "$BIN_DIR/htpc-control-center" <<'PY'
 from pathlib import Path
 import sys
@@ -71,10 +74,8 @@ cp "$SCRIPT_DIR/data/$APP_ID.metainfo.xml" "$METAINFO_DIR/$APP_ID.metainfo.xml"
 cp "$SCRIPT_DIR/data/icons/$APP_ID.svg" "$ICON_SCALABLE_DIR/$APP_ID.svg"
 cp "$SCRIPT_DIR/data/icons/$APP_ID.png" "$ICON_256_DIR/$APP_ID.png"
 cp "$SCRIPT_DIR/data/icons/$APP_ID.ico" "$APP_HOME/$APP_ID.ico"
-
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -t "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
-
 echo
 echo "$APP_NAME installed."
 echo "Launch it from your application menu or run: htpc-control-center"
