@@ -16,14 +16,12 @@ from ..paths import AppPaths
 
 LOGGER = logging.getLogger(__name__)
 
-
 @dataclass(frozen=True)
 class EventResult:
     event: str
     performed: bool
     success: bool
     message: str
-
 
 async def _wake_with_retries(
     event: str,
@@ -51,7 +49,6 @@ async def _wake_with_retries(
             await asyncio.sleep(max(0.1, config.behavior.wake_retry_seconds))
     return EventResult(event, True, False, last_message)
 
-
 async def _wait_for_tv_ready(
     controller: TVController,
     config: AppConfig,
@@ -69,7 +66,6 @@ async def _wait_for_tv_ready(
     """
     if grace_seconds > 0:
         await asyncio.sleep(grace_seconds)
-
     deadline = max(0.0, config.behavior.adb_ready_timeout_seconds)
     interval = max(0.1, config.behavior.adb_ready_poll_seconds)
     elapsed = 0.0
@@ -100,7 +96,6 @@ async def _wait_for_tv_ready(
             await asyncio.sleep(interval)
             elapsed += interval
 
-
 async def handle_event(
     event: str,
     config: AppConfig | None = None,
@@ -109,7 +104,6 @@ async def handle_event(
     paths = paths or AppPaths.from_environment()
     config = config or load_config(paths)
     behavior = config.behavior
-
     # Resolve policy before constructing the provider. A disabled lifecycle action
     # should remain disabled even if its provider dependency (for example adb) is
     # temporarily unavailable.
@@ -125,7 +119,6 @@ async def handle_event(
         return EventResult(event, False, True, "Reboot TV power-off is disabled.")
     if event not in {"startup", "resume", "suspend", "shutdown", "reboot"}:
         raise ValueError(f"Unknown lifecycle event: {event}")
-
     try:
         controller = create_controller(config)
         if event == "startup":
@@ -150,7 +143,6 @@ async def handle_event(
                     f"adb did not become reachable within {total:g}s; TV was not woken.",
                 )
             return await _wake_with_retries(event, controller, config)
-
         # Controller wake has its own system-level pre-suspend guard. TV lifecycle
         # handling must not add another controller settling delay here.
         result = await controller.set_power(False)
@@ -161,7 +153,6 @@ async def handle_event(
 
 def _power_event_result(event: str, result: PowerResult) -> EventResult:
     return EventResult(event, True, result.success, result.message)
-
 
 def _metadata_shutdown_type(body: list[Any]) -> str:
     if len(body) < 2 or not isinstance(body[1], dict):
@@ -178,7 +169,6 @@ def _metadata_shutdown_type(body: list[Any]) -> str:
 
 class LogindWatcher:
     """Listen for logind lifecycle signals while holding a delay inhibitor."""
-
     def __init__(self, config: AppConfig, paths: AppPaths) -> None:
         self.config = config
         self.paths = paths
@@ -189,11 +179,9 @@ class LogindWatcher:
         self._tasks: set[asyncio.Task[Any]] = set()
         self._legacy_shutdown_task: asyncio.Task[Any] | None = None
         self.effective_delay_seconds = max(1.0, config.service.inhibitor_delay_max_seconds)
-
     async def _read_inhibit_delay(self) -> None:
-        from dbus_next import Message
-        from dbus_next.constants import MessageType
-
+        from dbus_fast import Message
+        from dbus_fast.constants import MessageType
         reply = await self.bus.call(
             Message(
                 destination="org.freedesktop.login1",
@@ -220,11 +208,9 @@ class LogindWatcher:
                 min(self.config.service.inhibitor_delay_max_seconds, safe_system_limit),
             )
         LOGGER.info("Using %.2f-second lifecycle deadline", self.effective_delay_seconds)
-
     async def _add_signal_match(self) -> None:
-        from dbus_next import Message
-        from dbus_next.constants import MessageType
-
+        from dbus_fast import Message
+        from dbus_fast.constants import MessageType
         rule = (
             "type='signal',sender='org.freedesktop.login1',"
             "path='/org/freedesktop/login1',"
@@ -242,14 +228,12 @@ class LogindWatcher:
         )
         if reply.message_type is MessageType.ERROR:
             raise RuntimeError(reply.body[0] if reply.body else "Could not subscribe to logind signals")
-
     async def _acquire_inhibitor(self) -> None:
         try:
-            from dbus_next import Message
-            from dbus_next.constants import MessageType
+            from dbus_fast import Message
+            from dbus_fast.constants import MessageType
         except ImportError as exc:  # pragma: no cover
-            raise RuntimeError("dbus-next is not installed") from exc
-
+            raise RuntimeError("dbus-fast could not be imported") from exc
         reply = await self.bus.call(
             Message(
                 destination="org.freedesktop.login1",
@@ -274,7 +258,6 @@ class LogindWatcher:
             raise RuntimeError("logind returned an invalid inhibitor file descriptor index")
         self.inhibitor_fd = reply.unix_fds[fd_index]
         LOGGER.info("Acquired logind sleep/shutdown delay inhibitor")
-
     def _release_inhibitor(self) -> None:
         if self.inhibitor_fd is None:
             return
@@ -286,7 +269,6 @@ class LogindWatcher:
     def _track(self, coroutine: Any) -> asyncio.Task[Any]:
         task = asyncio.create_task(coroutine)
         self._tasks.add(task)
-
         def finished(done: asyncio.Task[Any]) -> None:
             self._tasks.discard(done)
             if done.cancelled():
@@ -298,7 +280,6 @@ class LogindWatcher:
 
         task.add_done_callback(finished)
         return task
-
     async def _run_event_with_deadline(self, event: str) -> None:
         timeout = self.effective_delay_seconds
         try:
@@ -318,7 +299,6 @@ class LogindWatcher:
         finally:
             if event in {"suspend", "shutdown", "reboot"}:
                 self._release_inhibitor()
-
     async def _on_resume(self) -> None:
         self.sleeping = False
         try:
@@ -328,7 +308,6 @@ class LogindWatcher:
         result = await handle_event("resume", self.config, self.paths)
         log = LOGGER.info if result.success else LOGGER.error
         log("Lifecycle event resume: %s", result.message)
-
     async def _legacy_shutdown_after_grace(self) -> None:
         # Newer logind versions emit a metadata-bearing signal that can distinguish
         # reboot from poweroff. Give it a brief chance to arrive before falling back.
@@ -337,17 +316,15 @@ class LogindWatcher:
             return
         self.shutting_down = True
         await self._run_event_with_deadline("shutdown")
-
     def _message_handler(self, message: Any) -> bool:
         try:
-            from dbus_next.constants import MessageType
+            from dbus_fast.constants import MessageType
         except ImportError:  # pragma: no cover
             return False
         if message.message_type is not MessageType.SIGNAL:
             return False
         if message.interface != "org.freedesktop.login1.Manager":
             return False
-
         if message.member == "PrepareForSleep" and message.body:
             preparing = bool(message.body[0])
             if preparing and not self.sleeping:
@@ -356,7 +333,6 @@ class LogindWatcher:
             elif not preparing and self.sleeping:
                 self._track(self._on_resume())
             return False
-
         if message.member == "PrepareForShutdownWithMetadata" and message.body:
             preparing = bool(message.body[0])
             if preparing and not self.shutting_down:
@@ -365,21 +341,18 @@ class LogindWatcher:
                     self._legacy_shutdown_task.cancel()
                 self._track(self._run_event_with_deadline(_metadata_shutdown_type(message.body)))
             return False
-
         if message.member == "PrepareForShutdown" and message.body:
             preparing = bool(message.body[0])
             if preparing and not self.shutting_down and self._legacy_shutdown_task is None:
                 self._legacy_shutdown_task = self._track(self._legacy_shutdown_after_grace())
             return False
         return False
-
     async def run(self) -> None:
         try:
-            from dbus_next.aio import MessageBus
-            from dbus_next.constants import BusType
+            from dbus_fast.aio import MessageBus
+            from dbus_fast.constants import BusType
         except ImportError as exc:  # pragma: no cover
-            raise RuntimeError("dbus-next is not installed") from exc
-
+            raise RuntimeError("dbus-fast could not be imported") from exc
         self.bus = await MessageBus(bus_type=BusType.SYSTEM, negotiate_unix_fd=True).connect()
         await self._read_inhibit_delay()
         await self._add_signal_match()
@@ -389,7 +362,6 @@ class LogindWatcher:
         startup = await handle_event("startup", self.config, self.paths)
         log = LOGGER.info if startup.success else LOGGER.error
         log("Lifecycle event startup: %s", startup.message)
-
         LOGGER.info("Watching logind for sleep and shutdown events")
         try:
             await self.bus.wait_for_disconnect()
